@@ -1,6 +1,6 @@
 {
   "name": "grid-client-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Node Grid Client Core",
   "main": "./js/index.js",
   "typings": "./js/index.d.ts",
@@ -16,6 +16,7 @@
   "author": "Wen Chang",
   "license": "MIT",
   "dependencies": {
+    "@types/node": "^6.0.41",
     "rcf": "git+https://github.com/wchang28/rcf.git"
   }
 }

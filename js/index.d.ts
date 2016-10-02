@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
@@ -18,9 +19,9 @@ export interface IMessageClient {
 export declare class ApiCore extends events.EventEmitter {
     private __authApi;
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
-    $driver: rcf.$Driver;
-    access: rcf.OAuth2Access;
-    tokenGrant: rcf.IOAuth2TokenGrant;
+    readonly $driver: rcf.$Driver;
+    readonly access: rcf.OAuth2Access;
+    readonly tokenGrant: rcf.IOAuth2TokenGrant;
     $J(method: string, pathname: string, data: any, done: rcf.ApiCompletionHandler): void;
     $M(): IMessageClient;
 }
