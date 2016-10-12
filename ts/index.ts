@@ -97,8 +97,9 @@ export interface IGridJob {
 
 // will emit the follwoing events:
 // 1. submitted (jobId)
-// 2. status-changed (jobProgress)
-// 3. done (jobProgress)
+// 2. status-changed (jobProgress: IJobProgress)
+// 3. done (jobProgress: IJobProgress)
+// 4. task-complete (task:ITask)
 // 4. error
 class GridJob extends ApiCore implements IGridJob {
     private __jobId:string = null;
@@ -138,6 +139,9 @@ class GridJob extends ApiCore implements IGridJob {
                             if (gMsg.type === 'status-changed') {
                                 let jobProgress: interf.IJobProgress = gMsg.content;
                                 this.onJobProgress(msgClient, jobProgress);
+                            } else if (gMsg.type === 'task-complete') {
+                                let task:interf.ITask = gMsg.content;
+                                this.emit('task-complete', task);
                             }
                         }
                         ,{}
@@ -180,6 +184,7 @@ export interface ISession {
     setQueueOpened: (open: boolean, done: (err:any, dispControl: interf.IDispControl) => void) => void;
     getConnections: (done: (err:any, connections: any) => void) => void;
     setNodeEnabled: (nodeId:string, enabled: boolean, done: (err:any, nodeItem: interf.INodeItem) => void) => void;
+    getTaskResult: (jobId: string, taskIndex: number, done: (err:any, taskResult: interf.ITaskResult) => void) => void;
     logout: (done?:(err:any) => void) => void;
 }
 
@@ -241,6 +246,10 @@ export class SessionBase extends ApiCore {
     }
     setNodeEnabled(nodeId:string, enabled: boolean, done: (err:any, nodeItem: interf.INodeItem) => void): void {
         let path = Utils.getNodePath(nodeId, (enabled ? "enable": "disable"));
+        this.$J("GET", path, {}, done);
+    }
+    getTaskResult(jobId: string, taskIndex: number, done: (err:any, taskResult: interf.ITaskResult) => void) : void {
+        let path = Utils.getTaskOpPath(jobId, taskIndex);
         this.$J("GET", path, {}, done);
     }
 }

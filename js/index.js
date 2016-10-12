@@ -100,8 +100,9 @@ var JobReSubmmit = (function (_super) {
 ;
 // will emit the follwoing events:
 // 1. submitted (jobId)
-// 2. status-changed (jobProgress)
-// 3. done (jobProgress)
+// 2. status-changed (jobProgress: IJobProgress)
+// 3. done (jobProgress: IJobProgress)
+// 4. task-complete (task:ITask)
 // 4. error
 var GridJob = (function (_super) {
     __extends(GridJob, _super);
@@ -147,6 +148,10 @@ var GridJob = (function (_super) {
                             if (gMsg.type === 'status-changed') {
                                 var jobProgress_1 = gMsg.content;
                                 _this.onJobProgress(msgClient_1, jobProgress_1);
+                            }
+                            else if (gMsg.type === 'task-complete') {
+                                var task = gMsg.content;
+                                _this.emit('task-complete', task);
                             }
                         }, {}, function (err) {
                             if (err) {
@@ -233,6 +238,10 @@ var SessionBase = (function (_super) {
     };
     SessionBase.prototype.setNodeEnabled = function (nodeId, enabled, done) {
         var path = utils_1.Utils.getNodePath(nodeId, (enabled ? "enable" : "disable"));
+        this.$J("GET", path, {}, done);
+    };
+    SessionBase.prototype.getTaskResult = function (jobId, taskIndex, done) {
+        var path = utils_1.Utils.getTaskOpPath(jobId, taskIndex);
         this.$J("GET", path, {}, done);
     };
     return SessionBase;

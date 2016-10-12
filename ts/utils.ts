@@ -20,4 +20,7 @@ export class Utils {
 
     static getJobOpPath(jobId:string, op:string):string {return '/services/job/' + jobId + '/' + op;}
     static getNodePath(nodeId:string, op:string):string {return "/services/dispatcher/node/" + nodeId + "/" +  op;}
+    static getTaskOpPath(jobId:string, taskIndex: number, op?:string):string {
+        return Utils.getJobOpPath(jobId, 'task') + '/' + taskIndex.toString() + '/' + (op ? op : "");
+    }
 }

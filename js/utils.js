@@ -20,6 +20,9 @@ var Utils = (function () {
     };
     Utils.getJobOpPath = function (jobId, op) { return '/services/job/' + jobId + '/' + op; };
     Utils.getNodePath = function (nodeId, op) { return "/services/dispatcher/node/" + nodeId + "/" + op; };
+    Utils.getTaskOpPath = function (jobId, taskIndex, op) {
+        return Utils.getJobOpPath(jobId, 'task') + '/' + taskIndex.toString() + '/' + (op ? op : "");
+    };
     return Utils;
 }());
 exports.Utils = Utils;

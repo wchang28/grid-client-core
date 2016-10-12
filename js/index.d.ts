@@ -46,6 +46,7 @@ export interface ISession {
     setQueueOpened: (open: boolean, done: (err: any, dispControl: interf.IDispControl) => void) => void;
     getConnections: (done: (err: any, connections: any) => void) => void;
     setNodeEnabled: (nodeId: string, enabled: boolean, done: (err: any, nodeItem: interf.INodeItem) => void) => void;
+    getTaskResult: (jobId: string, taskIndex: number, done: (err: any, taskResult: interf.ITaskResult) => void) => void;
     logout: (done?: (err: any) => void) => void;
 }
 export declare class SessionBase extends ApiCore {
@@ -65,6 +66,7 @@ export declare class SessionBase extends ApiCore {
     setQueueOpened(open: boolean, done: (err: any, dispControl: interf.IDispControl) => void): void;
     getConnections(done: (err: any, connections: any) => void): void;
     setNodeEnabled(nodeId: string, enabled: boolean, done: (err: any, nodeItem: interf.INodeItem) => void): void;
+    getTaskResult(jobId: string, taskIndex: number, done: (err: any, taskResult: interf.ITaskResult) => void): void;
 }
 export { $Driver, OAuth2Access, IOAuth2TokenGrant } from 'rcf';
 export { Utils } from './utils';
