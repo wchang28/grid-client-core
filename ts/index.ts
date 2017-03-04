@@ -7,7 +7,7 @@ let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
 
 export interface MessageCallback {
-    (msg: interf.GridMessage): void;
+    (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
 }
 
 export interface IMessageClient {
@@ -24,7 +24,7 @@ class MessageClient implements IMessageClient {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
             let sub_id = this.__msgClient.subscribe(destination, (msg: rcf.IMessage) => {
                 let gMsg: interf.GridMessage = msg.body;
-                cb(gMsg);
+                cb(gMsg, msg.headers);
             }, headers, (err: any) => {
                 if (err)
                     reject(err);

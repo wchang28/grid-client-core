@@ -4,7 +4,7 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 export interface MessageCallback {
-    (msg: interf.GridMessage): void;
+    (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
 }
 export interface IMessageClient {
     subscribe: (destination: string, cb: MessageCallback, headers?: {

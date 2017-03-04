@@ -18,7 +18,7 @@ var MessageClient = (function () {
         return new Promise(function (resolve, reject) {
             var sub_id = _this.__msgClient.subscribe(destination, function (msg) {
                 var gMsg = msg.body;
-                cb(gMsg);
+                cb(gMsg, msg.headers);
             }, headers, function (err) {
                 if (err)
                     reject(err);
