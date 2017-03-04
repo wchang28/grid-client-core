@@ -1,3 +1,4 @@
+/// <reference types="es6-promise" />
 /// <reference types="node" />
 import * as events from 'events';
 import * as rcf from 'rcf';
@@ -8,11 +9,11 @@ export interface MessageCallback {
 export interface IMessageClient {
     subscribe: (destination: string, cb: MessageCallback, headers?: {
         [field: string]: any;
-    }, done?: rcf.DoneHandler) => string;
-    unsubscribe: (sub_id: string, done?: rcf.DoneHandler) => void;
+    }) => Promise<string>;
+    unsubscribe: (sub_id: string) => Promise<any>;
     send: (destination: string, headers: {
         [field: string]: any;
-    }, msg: interf.GridMessage, done?: rcf.DoneHandler) => void;
+    }, msg: interf.GridMessage) => Promise<any>;
     disconnect: () => void;
     on: (event: string, listener: Function) => this;
 }

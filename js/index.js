@@ -4,24 +4,50 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var events = require('events');
-var rcf = require('rcf');
-var utils_1 = require('./utils');
+var events = require("events");
+var rcf = require("rcf");
+var utils_1 = require("./utils");
 var eventStreamPathname = '/services/events/event_stream';
 var clientOptions = { reconnetIntervalMS: 10000 };
 var MessageClient = (function () {
     function MessageClient(__msgClient) {
         this.__msgClient = __msgClient;
     }
-    MessageClient.prototype.subscribe = function (destination, cb, headers, done) {
-        return this.__msgClient.subscribe(destination, function (msg) {
-            var gMsg = msg.body;
-            cb(gMsg);
-        }, headers, done);
+    MessageClient.prototype.subscribe = function (destination, cb, headers) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            var sub_id = _this.__msgClient.subscribe(destination, function (msg) {
+                var gMsg = msg.body;
+                cb(gMsg);
+            }, headers, function (err) {
+                if (err)
+                    reject(err);
+                else
+                    resolve(sub_id);
+            });
+        });
     };
-    MessageClient.prototype.unsubscribe = function (sub_id, done) { this.__msgClient.unsubscribe(sub_id, done); };
-    MessageClient.prototype.send = function (destination, headers, msg, done) {
-        this.__msgClient.send(destination, headers, msg, done);
+    MessageClient.prototype.unsubscribe = function (sub_id) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.__msgClient.unsubscribe(sub_id, function (err) {
+                if (err)
+                    reject(err);
+                else
+                    resolve({});
+            });
+        });
+    };
+    MessageClient.prototype.send = function (destination, headers, msg) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.__msgClient.send(destination, headers, msg, function (err) {
+                if (err)
+                    reject(err);
+                else
+                    resolve({});
+            });
+        });
     };
     MessageClient.prototype.disconnect = function () { this.__msgClient.disconnect(); };
     MessageClient.prototype.on = function (event, listener) {
@@ -33,12 +59,12 @@ var MessageClient = (function () {
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
     function ApiCore($drver, access, tokenGrant) {
-        var _this = this;
-        _super.call(this);
-        this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
-        this.__authApi.on('on_access_refreshed', function (newAccess) {
+        var _this = _super.call(this) || this;
+        _this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
+        _this.__authApi.on('on_access_refreshed', function (newAccess) {
             _this.emit('on_access_refreshed', newAccess);
         });
+        return _this;
     }
     Object.defineProperty(ApiCore.prototype, "$driver", {
         get: function () { return this.__authApi.$driver; },
@@ -68,8 +94,9 @@ exports.ApiCore = ApiCore;
 var JobSubmmit = (function (_super) {
     __extends(JobSubmmit, _super);
     function JobSubmmit($drver, access, tokenGrant, __jobSubmit) {
-        _super.call(this, $drver, access, tokenGrant);
-        this.__jobSubmit = __jobSubmit;
+        var _this = _super.call(this, $drver, access, tokenGrant) || this;
+        _this.__jobSubmit = __jobSubmit;
+        return _this;
     }
     JobSubmmit.prototype.submit = function (done) {
         this.$J('POST', '/services/job/submit', this.__jobSubmit, function (err, ret) {
@@ -82,9 +109,10 @@ var JobSubmmit = (function (_super) {
 var JobReSubmmit = (function (_super) {
     __extends(JobReSubmmit, _super);
     function JobReSubmmit($drver, access, tokenGrant, __oldJobId, __failedTasksOnly) {
-        _super.call(this, $drver, access, tokenGrant);
-        this.__oldJobId = __oldJobId;
-        this.__failedTasksOnly = __failedTasksOnly;
+        var _this = _super.call(this, $drver, access, tokenGrant) || this;
+        _this.__oldJobId = __oldJobId;
+        _this.__failedTasksOnly = __failedTasksOnly;
+        return _this;
     }
     JobReSubmmit.prototype.submit = function (done) {
         var path = utils_1.Utils.getJobOpPath(this.__oldJobId, 're_submit');
@@ -107,9 +135,10 @@ var JobReSubmmit = (function (_super) {
 var GridJob = (function (_super) {
     __extends(GridJob, _super);
     function GridJob($drver, access, tokenGrant, __js) {
-        _super.call(this, $drver, access, tokenGrant);
-        this.__js = __js;
-        this.__jobId = null;
+        var _this = _super.call(this, $drver, access, tokenGrant) || this;
+        _this.__js = __js;
+        _this.__jobId = null;
+        return _this;
     }
     GridJob.jobDone = function (jobProgress) {
         return (jobProgress.status === 'FINISHED' || jobProgress.status === 'ABORTED');
@@ -153,19 +182,16 @@ var GridJob = (function (_super) {
                                 var task = gMsg.content;
                                 _this.emit('task-complete', task);
                             }
-                        }, {}, function (err) {
-                            if (err) {
-                                _this.onError(msgClient_1, err);
-                            }
-                            else {
-                                var path = utils_1.Utils.getJobOpPath(_this.jobId, 'progress');
-                                _this.$J("GET", path, {}, function (err, jobProgress) {
-                                    _this.onJobProgress(msgClient_1, jobProgress);
-                                });
-                            }
+                        }, {})
+                            .then(function (sub_id) {
+                            var path = utils_1.Utils.getJobOpPath(_this.jobId, 'progress');
+                            _this.$J("GET", path, {}, function (err, jobProgress) {
+                                _this.onJobProgress(msgClient_1, jobProgress);
+                            });
+                        }).catch(function (err) {
+                            _this.onError(msgClient_1, err);
                         });
-                    });
-                    msgClient_1.on('error', function (err) {
+                    }).on('error', function (err) {
                         _this.onError(msgClient_1, err);
                     });
                 }
@@ -182,7 +208,7 @@ var GridJob = (function (_super) {
 var SessionBase = (function (_super) {
     __extends(SessionBase, _super);
     function SessionBase($drver, access, tokenGrant) {
-        _super.call(this, $drver, access, tokenGrant);
+        return _super.call(this, $drver, access, tokenGrant) || this;
     }
     SessionBase.prototype.createMsgClient = function () {
         return this.$M();
@@ -247,5 +273,5 @@ var SessionBase = (function (_super) {
     return SessionBase;
 }(ApiCore));
 exports.SessionBase = SessionBase;
-var utils_2 = require('./utils');
+var utils_2 = require("./utils");
 exports.Utils = utils_2.Utils;

@@ -11,24 +11,47 @@ export interface MessageCallback {
 }
 
 export interface IMessageClient {
-    subscribe: (destination: string, cb: MessageCallback, headers?: {[field: string]: any;}, done?: rcf.DoneHandler) => string;
-    unsubscribe: (sub_id: string, done?: rcf.DoneHandler) => void;
-    send: (destination: string, headers: {[field: string]: any;}, msg: interf.GridMessage, done?: rcf.DoneHandler) => void;
+    subscribe: (destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) => Promise<string>;
+    unsubscribe: (sub_id: string) => Promise<any>;
+    send: (destination: string, headers: {[field: string]: any;}, msg: interf.GridMessage) => Promise<any>;
     disconnect: () => void;
     on: (event: string, listener: Function) => this;
 }
 
 class MessageClient implements IMessageClient {
     constructor(protected __msgClient: rcf.IMessageClient) {}
-    subscribe(destination: string, cb: MessageCallback, headers?: {[field: string]: any;}, done?: rcf.DoneHandler) : string {
-        return this.__msgClient.subscribe(destination, (msg: rcf.IMessage) => {
-            let gMsg: interf.GridMessage = msg.body;
-            cb(gMsg);
-        }, headers, done);
+    subscribe(destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) : Promise<string> {
+        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
+            let sub_id = this.__msgClient.subscribe(destination, (msg: rcf.IMessage) => {
+                let gMsg: interf.GridMessage = msg.body;
+                cb(gMsg);
+            }, headers, (err: any) => {
+                if (err)
+                    reject(err);
+                else
+                    resolve(sub_id);
+            });
+        });
     }
-    unsubscribe(sub_id: string, done?: rcf.DoneHandler) : void {this.__msgClient.unsubscribe(sub_id, done);}
-    send(destination: string, headers: {[field: string]: any}, msg: interf.GridMessage, done?: rcf.DoneHandler) : void {
-        this.__msgClient.send(destination, headers, msg, done);
+    unsubscribe(sub_id: string) : Promise<any> {
+        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
+            this.__msgClient.unsubscribe(sub_id, (err: any) => {
+                if (err)
+                    reject(err);
+                else
+                    resolve({});
+            });
+        });
+    }
+    send(destination: string, headers: {[field: string]: any}, msg: interf.GridMessage) : Promise<any> {
+        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
+            this.__msgClient.send(destination, headers, msg, (err: any) => {
+                if (err)
+                    reject(err);
+                else
+                    resolve({});
+            });
+        });
     }
     disconnect() : void {this.__msgClient.disconnect();}
     on(event: string, listener: Function) : this {
@@ -144,20 +167,16 @@ class GridJob extends ApiCore implements IGridJob {
                                 this.emit('task-complete', task);
                             }
                         }
-                        ,{}
-                        ,(err: any) => {
-                            if (err) {  // topic subscription failed
-                                this.onError(msgClient, err);
-                            } else {  // topic subscription successful
-                                let path = Utils.getJobOpPath(this.jobId, 'progress');
-                                this.$J("GET", path, {}, (err:any, jobProgress:interf.IJobProgress) => {
-                                    this.onJobProgress(msgClient, jobProgress);
-                                });
-                            }
+                        ,{})
+                        .then((sub_id: string) => {
+                            let path = Utils.getJobOpPath(this.jobId, 'progress');
+                            this.$J("GET", path, {}, (err:any, jobProgress:interf.IJobProgress) => {
+                                this.onJobProgress(msgClient, jobProgress);
+                            });
+                        }).catch((err: any) => {
+                            this.onError(msgClient, err);
                         });
-                    });
-
-                    msgClient.on('error', (err: any) : void => {
+                    }).on('error', (err: any) : void => {
                         this.onError(msgClient, err);
                     });
                 }
