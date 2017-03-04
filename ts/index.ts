@@ -72,8 +72,15 @@ export class ApiCore extends events.EventEmitter {
     get $driver() : rcf.$Driver {return this.__authApi.$driver;}
     get access() : rcf.OAuth2Access {return this.__authApi.access;}
     get tokenGrant() : rcf.IOAuth2TokenGrant {return this.__authApi.tokenGrant;}
-    $J(method: string, pathname: string, data: any, done: rcf.ApiCompletionHandler) : void {
-        this.__authApi.$J(method, pathname, data, done);
+    $J(method: string, pathname: string, data: any) : Promise<any> {
+        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
+            this.__authApi.$JP(method, pathname, data)
+            .then((result: rcf.RestReturn) => {
+                resolve(result.ret);
+            }).catch((err: any) => {
+                reject(err);
+            });
+        });
     }
     $M() : IMessageClient {
         return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions));
@@ -81,7 +88,7 @@ export class ApiCore extends events.EventEmitter {
 }
 
 interface IJobSubmitter {
-    submit: (done: (err:any, jobProgress:interf.IJobProgress) => void) => void;
+    submit: () => Promise<interf.IJobProgress>;
 }
 
 // job submission class
@@ -89,10 +96,8 @@ class JobSubmmit extends ApiCore implements IJobSubmitter {
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __jobSubmit:interf.IGridJobSubmit) {
         super($drver, access, tokenGrant);
     }
-    submit(done: (err:any, jobProgress:interf.IJobProgress) => void) : void {
-        this.$J('POST', '/services/job/submit', this.__jobSubmit, (err:any, ret:any) => {
-            done(err, (err ? null: ret));
-        });
+    submit() : Promise<interf.IJobProgress> {
+        return this.$J('POST', '/services/job/submit', this.__jobSubmit);
     }
 }
 
@@ -101,14 +106,12 @@ class JobReSubmmit extends ApiCore implements IJobSubmitter {
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __oldJobId:string, private __failedTasksOnly:boolean) {
         super($drver, access, tokenGrant);
     }
-    submit(done: (err:any, jobProgress:interf.IJobProgress) => void) : void {
+    submit() : Promise<interf.IJobProgress> {
         let path = Utils.getJobOpPath(this.__oldJobId, 're_submit');
         let data:any = {
             failedTasksOnly: (this.__failedTasksOnly ? '1' : '0')
         };
-        this.$J('GET', path, data, (err: any, ret: any) => {
-            done(err, (err ? null: ret));
-        });
+        return this.$J('GET', path, data);
     }
 }
 
@@ -147,40 +150,48 @@ class GridJob extends ApiCore implements IGridJob {
             return true;
     }
     run(): void {
-        // submit the job
-        this.__js.submit((err:any, jobProgress: interf.IJobProgress) => {
-            if (err) {  // submit failed
-                this.onError(null, err);
-            } else {    // submit successful
-                this.__jobId = jobProgress.jobId;
-                this.emit('submitted', this.__jobId);
-                if (this.onJobProgress(null, jobProgress)) {
-                    let msgClient = this.$M();
+        this.__js.submit()  // submit the job
+        .then((jobProgress: interf.IJobProgress) => {
+            // job submit successful
+            this.__jobId = jobProgress.jobId;
+            this.emit('submitted', this.__jobId);
+            if (this.onJobProgress(null, jobProgress)) {
+                // job still running
+                let msgClient = this.$M();  // create a message client
 
-                    msgClient.on('connect', (conn_id:string) : void => {
-                        msgClient.subscribe(Utils.getJobNotificationTopic(this.jobId), (gMsg: interf.GridMessage) => {
-                            if (gMsg.type === 'status-changed') {
-                                let jobProgress: interf.IJobProgress = gMsg.content;
-                                this.onJobProgress(msgClient, jobProgress);
-                            } else if (gMsg.type === 'task-complete') {
-                                let task:interf.ITask = gMsg.content;
-                                this.emit('task-complete', task);
-                            }
+                msgClient.on('connect', (conn_id:string) : void => {
+                    // connected, try to subscribe to the job topic
+                    msgClient.subscribe(Utils.getJobNotificationTopic(this.jobId), (gMsg: interf.GridMessage) => {
+                        if (gMsg.type === 'status-changed') {
+                            let jobProgress: interf.IJobProgress = gMsg.content;
+                            this.onJobProgress(msgClient, jobProgress);
+                        } else if (gMsg.type === 'task-complete') {
+                            let task:interf.ITask = gMsg.content;
+                            this.emit('task-complete', task);
                         }
-                        ,{})
-                        .then((sub_id: string) => {
-                            let path = Utils.getJobOpPath(this.jobId, 'progress');
-                            this.$J("GET", path, {}, (err:any, jobProgress:interf.IJobProgress) => {
-                                this.onJobProgress(msgClient, jobProgress);
-                            });
+                    }
+                    ,{})
+                    .then((sub_id: string) => {
+                        // job topic subscription successful, try to get the job progress again
+                        let path = Utils.getJobOpPath(this.jobId, 'progress');
+                        this.$J("GET", path, {})
+                        .then((jobProgress:interf.IJobProgress) => {
+                            this.onJobProgress(msgClient, jobProgress);
                         }).catch((err: any) => {
                             this.onError(msgClient, err);
-                        });
-                    }).on('error', (err: any) : void => {
+                        })
+                    }).catch((err: any) => {
+                        // job topic subscription failed
                         this.onError(msgClient, err);
                     });
-                }
+                }).on('error', (err: any) : void => {
+                    // message client error
+                    this.onError(msgClient, err);
+                });
             }
+        }).catch((err: any) => {
+            // job submit failed
+            this.onError(null, err);
         });
     }
 
@@ -190,21 +201,21 @@ class GridJob extends ApiCore implements IGridJob {
 export interface ISession {
     createMsgClient: () => IMessageClient;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
-    sumbitJob: (jobSubmit:interf.IGridJobSubmit, done: (err:any, jobProgress:interf.IJobProgress) => void) => void;
+    sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId:string, failedTasksOnly:boolean) => IGridJob;
-    reSumbitJob: (oldJobId:string, failedTasksOnly:boolean, done: (err:any, jobProgress:interf.IJobProgress) => void) => void;
-    getMostRecentJobs: (done: (err:any, jobInfos:interf.IJobInfo[]) => void) => void;
-    killJob: (jobId: string, done: (err:any, ret:any) => void) => void;
-    getJobProgress: (jobId: string, done: (err:any, jobProgress:interf.IJobProgress) => void) => void;
-    getJobInfo: (jobId: string, done: (err:any, jobInfo:interf.IJobInfo) => void) => void;
-    getJobResult: (jobId: string, done: (err:any, jobResult:interf.IJobResult) => void) => void;
-    getDispatcherJSON: (done: (err:any, dispatcherJSON: interf.IDispatcherJSON) => void) => void;
-    setDispatchingEnabled: (enabled: boolean, done: (err:any, dispControl: interf.IDispControl) => void) => void; 
-    setQueueOpened: (open: boolean, done: (err:any, dispControl: interf.IDispControl) => void) => void;
-    getConnections: (done: (err:any, connections: any) => void) => void;
-    setNodeEnabled: (nodeId:string, enabled: boolean, done: (err:any, nodeItem: interf.INodeItem) => void) => void;
-    getTaskResult: (jobId: string, taskIndex: number, done: (err:any, taskResult: interf.ITaskResult) => void) => void;
-    logout: (done?:(err:any) => void) => void;
+    reSumbitJob: (oldJobId:string, failedTasksOnly:boolean) => Promise<interf.IJobProgress>;
+    getMostRecentJobs: () => Promise<interf.IJobInfo[]>;
+    killJob: (jobId: string) => Promise<any>;
+    getJobProgress: (jobId: string) => Promise<interf.IJobProgress>;
+    getJobInfo: (jobId: string) => Promise<interf.IJobInfo>;
+    getJobResult: (jobId: string) => Promise<interf.IJobResult>;
+    getDispatcherJSON: () => Promise<interf.IDispatcherJSON>;
+    setDispatchingEnabled: (enabled: boolean) => Promise<interf.IDispControl>; 
+    setQueueOpened: (open: boolean) => Promise<interf.IDispControl>;
+    getConnections: () => Promise<any>;
+    setNodeEnabled: (nodeId:string, enabled: boolean) => Promise<interf.INodeItem>;
+    getTaskResult: (jobId: string, taskIndex: number) => Promise<interf.ITaskResult>;
+    logout: () => Promise<any>;
 }
 
 export class SessionBase extends ApiCore {
@@ -218,58 +229,58 @@ export class SessionBase extends ApiCore {
         let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
     }
-    sumbitJob(jobSubmit:interf.IGridJobSubmit, done: (err:any, jobProgress:interf.IJobProgress) => void) : void {
+    sumbitJob(jobSubmit:interf.IGridJobSubmit) : Promise<interf.IJobProgress> {
         let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
-        js.submit(done);
+        return js.submit();
     }
     reRunJob(oldJobId:string, failedTasksOnly:boolean) : IGridJob {
         let js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
     }
-    reSumbitJob(oldJobId:string, failedTasksOnly:boolean, done: (err:any, jobProgress:interf.IJobProgress) => void) : void {
+    reSumbitJob(oldJobId:string, failedTasksOnly:boolean) : Promise<interf.IJobProgress> {
         let js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
-        js.submit(done);
+        return js.submit();
     }
-    getMostRecentJobs(done: (err:any, jobInfos:interf.IJobInfo[]) => void) : void {
-        this.$J("GET", '/services/job/most_recent', {}, done);
+    getMostRecentJobs() : Promise<interf.IJobInfo[]> {
+        return this.$J("GET", '/services/job/most_recent', {});
     }
-    killJob(jobId: string, done: (err:any, ret:any) => void) : void {
+    killJob(jobId: string) : Promise<any> {
         let path = Utils.getJobOpPath(jobId, 'kill');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getJobProgress(jobId: string, done: (err:any, jobProgress:interf.IJobProgress) => void) : void {
+    getJobProgress(jobId: string) : Promise<interf.IJobProgress> {
         let path = Utils.getJobOpPath(jobId, 'progress');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getJobInfo(jobId: string, done: (err:any, jobInfo:interf.IJobInfo) => void) : void {
+    getJobInfo(jobId: string) : Promise<interf.IJobInfo> {
         let path = Utils.getJobOpPath(jobId, 'info');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getJobResult(jobId: string, done: (err:any, jobResult:interf.IJobResult) => void) : void {
+    getJobResult(jobId: string) : Promise<interf.IJobResult> {
         let path = Utils.getJobOpPath(jobId, 'result');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getDispatcherJSON(done: (err:any, dispatcherJSON: interf.IDispatcherJSON) => void) : void {
-        this.$J("GET", '/services/dispatcher', {}, done);
+    getDispatcherJSON() : Promise<interf.IDispatcherJSON> {
+        return this.$J("GET", '/services/dispatcher', {});
     }
-    setDispatchingEnabled(enabled: boolean, done: (err:any, dispControl: interf.IDispControl) => void): void {
+    setDispatchingEnabled(enabled: boolean): Promise<interf.IDispControl> {
         let path = "/services/dispatcher/dispatching/" + (enabled? "start": "stop");
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    setQueueOpened(open: boolean, done: (err:any, dispControl: interf.IDispControl) => void): void {
+    setQueueOpened(open: boolean) : Promise<interf.IDispControl> {
         let path = "/services/dispatcher/queue/" + (open? "open": "close");
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getConnections(done: (err:any, connections: any) => void) : void {
-        this.$J("GET", '/services/connections', {}, done);
+    getConnections() : Promise<any> {
+        return this.$J("GET", '/services/connections', {});
     }
-    setNodeEnabled(nodeId:string, enabled: boolean, done: (err:any, nodeItem: interf.INodeItem) => void): void {
+    setNodeEnabled(nodeId:string, enabled: boolean): Promise<interf.INodeItem> {
         let path = Utils.getNodePath(nodeId, (enabled ? "enable": "disable"));
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
-    getTaskResult(jobId: string, taskIndex: number, done: (err:any, taskResult: interf.ITaskResult) => void) : void {
+    getTaskResult(jobId: string, taskIndex: number) : Promise<interf.ITaskResult> {
         let path = Utils.getTaskOpPath(jobId, taskIndex);
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     }
 }
 

@@ -23,7 +23,7 @@ export declare class ApiCore extends events.EventEmitter {
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
     readonly tokenGrant: rcf.IOAuth2TokenGrant;
-    $J(method: string, pathname: string, data: any, done: rcf.ApiCompletionHandler): void;
+    $J(method: string, pathname: string, data: any): Promise<any>;
     $M(): IMessageClient;
 }
 export interface IGridJob {
@@ -34,40 +34,40 @@ export interface IGridJob {
 export interface ISession {
     createMsgClient: () => IMessageClient;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
-    sumbitJob: (jobSubmit: interf.IGridJobSubmit, done: (err: any, jobProgress: interf.IJobProgress) => void) => void;
+    sumbitJob: (jobSubmit: interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId: string, failedTasksOnly: boolean) => IGridJob;
-    reSumbitJob: (oldJobId: string, failedTasksOnly: boolean, done: (err: any, jobProgress: interf.IJobProgress) => void) => void;
-    getMostRecentJobs: (done: (err: any, jobInfos: interf.IJobInfo[]) => void) => void;
-    killJob: (jobId: string, done: (err: any, ret: any) => void) => void;
-    getJobProgress: (jobId: string, done: (err: any, jobProgress: interf.IJobProgress) => void) => void;
-    getJobInfo: (jobId: string, done: (err: any, jobInfo: interf.IJobInfo) => void) => void;
-    getJobResult: (jobId: string, done: (err: any, jobResult: interf.IJobResult) => void) => void;
-    getDispatcherJSON: (done: (err: any, dispatcherJSON: interf.IDispatcherJSON) => void) => void;
-    setDispatchingEnabled: (enabled: boolean, done: (err: any, dispControl: interf.IDispControl) => void) => void;
-    setQueueOpened: (open: boolean, done: (err: any, dispControl: interf.IDispControl) => void) => void;
-    getConnections: (done: (err: any, connections: any) => void) => void;
-    setNodeEnabled: (nodeId: string, enabled: boolean, done: (err: any, nodeItem: interf.INodeItem) => void) => void;
-    getTaskResult: (jobId: string, taskIndex: number, done: (err: any, taskResult: interf.ITaskResult) => void) => void;
-    logout: (done?: (err: any) => void) => void;
+    reSumbitJob: (oldJobId: string, failedTasksOnly: boolean) => Promise<interf.IJobProgress>;
+    getMostRecentJobs: () => Promise<interf.IJobInfo[]>;
+    killJob: (jobId: string) => Promise<any>;
+    getJobProgress: (jobId: string) => Promise<interf.IJobProgress>;
+    getJobInfo: (jobId: string) => Promise<interf.IJobInfo>;
+    getJobResult: (jobId: string) => Promise<interf.IJobResult>;
+    getDispatcherJSON: () => Promise<interf.IDispatcherJSON>;
+    setDispatchingEnabled: (enabled: boolean) => Promise<interf.IDispControl>;
+    setQueueOpened: (open: boolean) => Promise<interf.IDispControl>;
+    getConnections: () => Promise<any>;
+    setNodeEnabled: (nodeId: string, enabled: boolean) => Promise<interf.INodeItem>;
+    getTaskResult: (jobId: string, taskIndex: number) => Promise<interf.ITaskResult>;
+    logout: () => Promise<any>;
 }
 export declare class SessionBase extends ApiCore {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
     createMsgClient(): IMessageClient;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
-    sumbitJob(jobSubmit: interf.IGridJobSubmit, done: (err: any, jobProgress: interf.IJobProgress) => void): void;
+    sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
     reRunJob(oldJobId: string, failedTasksOnly: boolean): IGridJob;
-    reSumbitJob(oldJobId: string, failedTasksOnly: boolean, done: (err: any, jobProgress: interf.IJobProgress) => void): void;
-    getMostRecentJobs(done: (err: any, jobInfos: interf.IJobInfo[]) => void): void;
-    killJob(jobId: string, done: (err: any, ret: any) => void): void;
-    getJobProgress(jobId: string, done: (err: any, jobProgress: interf.IJobProgress) => void): void;
-    getJobInfo(jobId: string, done: (err: any, jobInfo: interf.IJobInfo) => void): void;
-    getJobResult(jobId: string, done: (err: any, jobResult: interf.IJobResult) => void): void;
-    getDispatcherJSON(done: (err: any, dispatcherJSON: interf.IDispatcherJSON) => void): void;
-    setDispatchingEnabled(enabled: boolean, done: (err: any, dispControl: interf.IDispControl) => void): void;
-    setQueueOpened(open: boolean, done: (err: any, dispControl: interf.IDispControl) => void): void;
-    getConnections(done: (err: any, connections: any) => void): void;
-    setNodeEnabled(nodeId: string, enabled: boolean, done: (err: any, nodeItem: interf.INodeItem) => void): void;
-    getTaskResult(jobId: string, taskIndex: number, done: (err: any, taskResult: interf.ITaskResult) => void): void;
+    reSumbitJob(oldJobId: string, failedTasksOnly: boolean): Promise<interf.IJobProgress>;
+    getMostRecentJobs(): Promise<interf.IJobInfo[]>;
+    killJob(jobId: string): Promise<any>;
+    getJobProgress(jobId: string): Promise<interf.IJobProgress>;
+    getJobInfo(jobId: string): Promise<interf.IJobInfo>;
+    getJobResult(jobId: string): Promise<interf.IJobResult>;
+    getDispatcherJSON(): Promise<interf.IDispatcherJSON>;
+    setDispatchingEnabled(enabled: boolean): Promise<interf.IDispControl>;
+    setQueueOpened(open: boolean): Promise<interf.IDispControl>;
+    getConnections(): Promise<any>;
+    setNodeEnabled(nodeId: string, enabled: boolean): Promise<interf.INodeItem>;
+    getTaskResult(jobId: string, taskIndex: number): Promise<interf.ITaskResult>;
 }
 export { $Driver, OAuth2Access, IOAuth2TokenGrant } from 'rcf';
 export { Utils } from './utils';

@@ -1,6 +1,6 @@
 {
   "name": "grid-client-core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Node Grid Client Core",
   "main": "./js/index.js",
   "typings": "./js/index.d.ts",

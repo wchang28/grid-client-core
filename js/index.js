@@ -81,8 +81,16 @@ var ApiCore = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    ApiCore.prototype.$J = function (method, pathname, data, done) {
-        this.__authApi.$J(method, pathname, data, done);
+    ApiCore.prototype.$J = function (method, pathname, data) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.__authApi.$JP(method, pathname, data)
+                .then(function (result) {
+                resolve(result.ret);
+            }).catch(function (err) {
+                reject(err);
+            });
+        });
     };
     ApiCore.prototype.$M = function () {
         return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions));
@@ -98,10 +106,8 @@ var JobSubmmit = (function (_super) {
         _this.__jobSubmit = __jobSubmit;
         return _this;
     }
-    JobSubmmit.prototype.submit = function (done) {
-        this.$J('POST', '/services/job/submit', this.__jobSubmit, function (err, ret) {
-            done(err, (err ? null : ret));
-        });
+    JobSubmmit.prototype.submit = function () {
+        return this.$J('POST', '/services/job/submit', this.__jobSubmit);
     };
     return JobSubmmit;
 }(ApiCore));
@@ -114,14 +120,12 @@ var JobReSubmmit = (function (_super) {
         _this.__failedTasksOnly = __failedTasksOnly;
         return _this;
     }
-    JobReSubmmit.prototype.submit = function (done) {
+    JobReSubmmit.prototype.submit = function () {
         var path = utils_1.Utils.getJobOpPath(this.__oldJobId, 're_submit');
         var data = {
             failedTasksOnly: (this.__failedTasksOnly ? '1' : '0')
         };
-        this.$J('GET', path, data, function (err, ret) {
-            done(err, (err ? null : ret));
-        });
+        return this.$J('GET', path, data);
     };
     return JobReSubmmit;
 }(ApiCore));
@@ -162,40 +166,47 @@ var GridJob = (function (_super) {
     };
     GridJob.prototype.run = function () {
         var _this = this;
-        // submit the job
-        this.__js.submit(function (err, jobProgress) {
-            if (err) {
-                _this.onError(null, err);
-            }
-            else {
-                _this.__jobId = jobProgress.jobId;
-                _this.emit('submitted', _this.__jobId);
-                if (_this.onJobProgress(null, jobProgress)) {
-                    var msgClient_1 = _this.$M();
-                    msgClient_1.on('connect', function (conn_id) {
-                        msgClient_1.subscribe(utils_1.Utils.getJobNotificationTopic(_this.jobId), function (gMsg) {
-                            if (gMsg.type === 'status-changed') {
-                                var jobProgress_1 = gMsg.content;
-                                _this.onJobProgress(msgClient_1, jobProgress_1);
-                            }
-                            else if (gMsg.type === 'task-complete') {
-                                var task = gMsg.content;
-                                _this.emit('task-complete', task);
-                            }
-                        }, {})
-                            .then(function (sub_id) {
-                            var path = utils_1.Utils.getJobOpPath(_this.jobId, 'progress');
-                            _this.$J("GET", path, {}, function (err, jobProgress) {
-                                _this.onJobProgress(msgClient_1, jobProgress);
-                            });
+        this.__js.submit() // submit the job
+            .then(function (jobProgress) {
+            // job submit successful
+            _this.__jobId = jobProgress.jobId;
+            _this.emit('submitted', _this.__jobId);
+            if (_this.onJobProgress(null, jobProgress)) {
+                // job still running
+                var msgClient_1 = _this.$M(); // create a message client
+                msgClient_1.on('connect', function (conn_id) {
+                    // connected, try to subscribe to the job topic
+                    msgClient_1.subscribe(utils_1.Utils.getJobNotificationTopic(_this.jobId), function (gMsg) {
+                        if (gMsg.type === 'status-changed') {
+                            var jobProgress_1 = gMsg.content;
+                            _this.onJobProgress(msgClient_1, jobProgress_1);
+                        }
+                        else if (gMsg.type === 'task-complete') {
+                            var task = gMsg.content;
+                            _this.emit('task-complete', task);
+                        }
+                    }, {})
+                        .then(function (sub_id) {
+                        // job topic subscription successful, try to get the job progress again
+                        var path = utils_1.Utils.getJobOpPath(_this.jobId, 'progress');
+                        _this.$J("GET", path, {})
+                            .then(function (jobProgress) {
+                            _this.onJobProgress(msgClient_1, jobProgress);
                         }).catch(function (err) {
                             _this.onError(msgClient_1, err);
                         });
-                    }).on('error', function (err) {
+                    }).catch(function (err) {
+                        // job topic subscription failed
                         _this.onError(msgClient_1, err);
                     });
-                }
+                }).on('error', function (err) {
+                    // message client error
+                    _this.onError(msgClient_1, err);
+                });
             }
+        }).catch(function (err) {
+            // job submit failed
+            _this.onError(null, err);
         });
     };
     Object.defineProperty(GridJob.prototype, "jobId", {
@@ -217,58 +228,58 @@ var SessionBase = (function (_super) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
     };
-    SessionBase.prototype.sumbitJob = function (jobSubmit, done) {
+    SessionBase.prototype.sumbitJob = function (jobSubmit) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
-        js.submit(done);
+        return js.submit();
     };
     SessionBase.prototype.reRunJob = function (oldJobId, failedTasksOnly) {
         var js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
     };
-    SessionBase.prototype.reSumbitJob = function (oldJobId, failedTasksOnly, done) {
+    SessionBase.prototype.reSumbitJob = function (oldJobId, failedTasksOnly) {
         var js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
-        js.submit(done);
+        return js.submit();
     };
-    SessionBase.prototype.getMostRecentJobs = function (done) {
-        this.$J("GET", '/services/job/most_recent', {}, done);
+    SessionBase.prototype.getMostRecentJobs = function () {
+        return this.$J("GET", '/services/job/most_recent', {});
     };
-    SessionBase.prototype.killJob = function (jobId, done) {
+    SessionBase.prototype.killJob = function (jobId) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'kill');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getJobProgress = function (jobId, done) {
+    SessionBase.prototype.getJobProgress = function (jobId) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'progress');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getJobInfo = function (jobId, done) {
+    SessionBase.prototype.getJobInfo = function (jobId) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'info');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getJobResult = function (jobId, done) {
+    SessionBase.prototype.getJobResult = function (jobId) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'result');
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getDispatcherJSON = function (done) {
-        this.$J("GET", '/services/dispatcher', {}, done);
+    SessionBase.prototype.getDispatcherJSON = function () {
+        return this.$J("GET", '/services/dispatcher', {});
     };
-    SessionBase.prototype.setDispatchingEnabled = function (enabled, done) {
+    SessionBase.prototype.setDispatchingEnabled = function (enabled) {
         var path = "/services/dispatcher/dispatching/" + (enabled ? "start" : "stop");
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.setQueueOpened = function (open, done) {
+    SessionBase.prototype.setQueueOpened = function (open) {
         var path = "/services/dispatcher/queue/" + (open ? "open" : "close");
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getConnections = function (done) {
-        this.$J("GET", '/services/connections', {}, done);
+    SessionBase.prototype.getConnections = function () {
+        return this.$J("GET", '/services/connections', {});
     };
-    SessionBase.prototype.setNodeEnabled = function (nodeId, enabled, done) {
+    SessionBase.prototype.setNodeEnabled = function (nodeId, enabled) {
         var path = utils_1.Utils.getNodePath(nodeId, (enabled ? "enable" : "disable"));
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getTaskResult = function (jobId, taskIndex, done) {
+    SessionBase.prototype.getTaskResult = function (jobId, taskIndex) {
         var path = utils_1.Utils.getTaskOpPath(jobId, taskIndex);
-        this.$J("GET", path, {}, done);
+        return this.$J("GET", path, {});
     };
     return SessionBase;
 }(ApiCore));
