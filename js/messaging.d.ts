@@ -22,6 +22,8 @@ export interface IGridUser {
 export interface INode {
     id: string;
     name: string;
+    remoteAddress: string;
+    remotePort: number;
 }
 export interface INodeItem extends INode {
     enabled: boolean;
