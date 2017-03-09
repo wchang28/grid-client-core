@@ -233,7 +233,7 @@ export class SessionBase extends ApiCore {
     createMsgClient() : IMessageClient {
         return this.$M();
     }
-    getAutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
+    get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
     getTimes(): Promise<interf.Times> {
         return this.$J("GET", '/services/times', {});
     }

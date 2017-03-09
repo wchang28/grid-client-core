@@ -231,7 +231,11 @@ var SessionBase = (function (_super) {
     SessionBase.prototype.createMsgClient = function () {
         return this.$M();
     };
-    SessionBase.prototype.getAutoScalableGrid = function () { return new AutoScalableGrid(this); };
+    Object.defineProperty(SessionBase.prototype, "AutoScalableGrid", {
+        get: function () { return new AutoScalableGrid(this); },
+        enumerable: true,
+        configurable: true
+    });
     SessionBase.prototype.getTimes = function () {
         return this.$J("GET", '/services/times', {});
     };

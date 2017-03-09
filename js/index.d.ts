@@ -56,7 +56,7 @@ export interface ISession {
 export declare class SessionBase extends ApiCore {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
     createMsgClient(): IMessageClient;
-    getAutoScalableGrid(): IAutoScalableGrid;
+    readonly AutoScalableGrid: IAutoScalableGrid;
     getTimes(): Promise<interf.Times>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
     sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
