@@ -33,7 +33,7 @@ export interface IGridJob {
 }
 export interface ISession {
     createMsgClient: () => IMessageClient;
-    readonly Times: () => Promise<interf.Times>;
+    getTimes: () => Promise<interf.Times>;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit: interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId: string, failedTasksOnly: boolean) => IGridJob;
@@ -54,7 +54,7 @@ export interface ISession {
 export declare class SessionBase extends ApiCore {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
     createMsgClient(): IMessageClient;
-    readonly Times: Promise<interf.Times>;
+    getTimes(): Promise<interf.Times>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
     sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
     reRunJob(oldJobId: string, failedTasksOnly: boolean): IGridJob;
