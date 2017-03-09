@@ -2,6 +2,7 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import {Utils} from './utils';
+import {IAutoScalableGrid, IAutoScalableState} from 'autoscalable-grid';
 
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
@@ -198,8 +199,14 @@ class GridJob extends ApiCore implements IGridJob {
     get jobId() : string {return this.__jobId;}
 }
 
+class AutoScalableGrid implements IAutoScalableGrid {
+    constructor(private api: ApiCore) {}
+    getCurrentState() : Promise<IAutoScalableState> {return this.api.$J("GET", "/services/scalable/state", {});}
+}
+
 export interface ISession {
     createMsgClient: () => IMessageClient;
+    getAutoScalableGrid: () => IAutoScalableGrid;
     getTimes: () => Promise<interf.Times>;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
@@ -226,6 +233,7 @@ export class SessionBase extends ApiCore {
     createMsgClient() : IMessageClient {
         return this.$M();
     }
+    getAutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
     getTimes(): Promise<interf.Times> {
         return this.$J("GET", '/services/times', {});
     }

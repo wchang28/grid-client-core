@@ -216,6 +216,13 @@ var GridJob = (function (_super) {
     });
     return GridJob;
 }(ApiCore));
+var AutoScalableGrid = (function () {
+    function AutoScalableGrid(api) {
+        this.api = api;
+    }
+    AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/services/scalable/state", {}); };
+    return AutoScalableGrid;
+}());
 var SessionBase = (function (_super) {
     __extends(SessionBase, _super);
     function SessionBase($drver, access, tokenGrant) {
@@ -224,6 +231,7 @@ var SessionBase = (function (_super) {
     SessionBase.prototype.createMsgClient = function () {
         return this.$M();
     };
+    SessionBase.prototype.getAutoScalableGrid = function () { return new AutoScalableGrid(this); };
     SessionBase.prototype.getTimes = function () {
         return this.$J("GET", '/services/times', {});
     };

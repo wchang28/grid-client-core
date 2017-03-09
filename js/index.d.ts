@@ -3,6 +3,7 @@
 import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
+import { IAutoScalableGrid } from 'autoscalable-grid';
 export interface MessageCallback {
     (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
 }
@@ -33,6 +34,7 @@ export interface IGridJob {
 }
 export interface ISession {
     createMsgClient: () => IMessageClient;
+    getAutoScalableGrid: () => IAutoScalableGrid;
     getTimes: () => Promise<interf.Times>;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit: interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
@@ -54,6 +56,7 @@ export interface ISession {
 export declare class SessionBase extends ApiCore {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
     createMsgClient(): IMessageClient;
+    getAutoScalableGrid(): IAutoScalableGrid;
     getTimes(): Promise<interf.Times>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
     sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
