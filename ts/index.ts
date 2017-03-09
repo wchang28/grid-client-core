@@ -206,7 +206,7 @@ class AutoScalableGrid implements IAutoScalableGrid {
 
 export interface ISession {
     createMsgClient: () => IMessageClient;
-    getAutoScalableGrid: () => IAutoScalableGrid;
+    readonly AutoScalableGrid: IAutoScalableGrid;
     getTimes: () => Promise<interf.Times>;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
