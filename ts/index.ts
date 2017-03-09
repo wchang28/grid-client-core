@@ -200,6 +200,7 @@ class GridJob extends ApiCore implements IGridJob {
 
 export interface ISession {
     createMsgClient: () => IMessageClient;
+    readonly Times: () => Promise<interf.Times>;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId:string, failedTasksOnly:boolean) => IGridJob;
@@ -224,6 +225,9 @@ export class SessionBase extends ApiCore {
     }
     createMsgClient() : IMessageClient {
         return this.$M();
+    }
+    get Times(): Promise<interf.Times> {
+        return this.$J("GET", '/services/times', {});
     }
     runJob(jobSubmit:interf.IGridJobSubmit) : IGridJob {
         let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);

@@ -224,6 +224,13 @@ var SessionBase = (function (_super) {
     SessionBase.prototype.createMsgClient = function () {
         return this.$M();
     };
+    Object.defineProperty(SessionBase.prototype, "Times", {
+        get: function () {
+            return this.$J("GET", '/services/times', {});
+        },
+        enumerable: true,
+        configurable: true
+    });
     SessionBase.prototype.runJob = function (jobSubmit) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
