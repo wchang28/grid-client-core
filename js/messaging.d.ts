@@ -115,3 +115,7 @@ export interface IGridJobSubmit {
     cookie?: string;
     tasks: ITaskItem[];
 }
+export interface Times {
+    serverTime: number;
+    dbTime: number;
+}
