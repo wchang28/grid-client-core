@@ -72,6 +72,7 @@ export interface IJobInfo extends IJobProgress {
     description: string;
     cookie: string;
     userId: string;
+    userName: string;
     priority: number;
     submitTime: Date;
     startTime: Date;
