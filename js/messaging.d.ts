@@ -29,6 +29,7 @@ export interface INodeItem extends INode {
     enabled: boolean;
     numCPUs: number;
     cpusUsed: number;
+    terminating: boolean;
     lastIdleTime?: number;
 }
 export interface INodeReady {
