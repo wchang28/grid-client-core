@@ -221,6 +221,8 @@ var AutoScalableGrid = (function () {
         this.api = api;
     }
     AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/services/scalable/state", {}); };
+    AutoScalableGrid.prototype.disableWorkers = function (workerIds) { return this.api.$J("POST", "/services/scalable/disable_workers", workerIds); };
+    AutoScalableGrid.prototype.setWorkersTerminating = function (workerIds) { return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds); };
     return AutoScalableGrid;
 }());
 var SessionBase = (function (_super) {
