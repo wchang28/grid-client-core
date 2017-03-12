@@ -230,21 +230,21 @@ var GridAutoScaler = (function () {
     function GridAutoScaler(api) {
         this.api = api;
     }
-    GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/services/grid_autoscaler/is_scaling_up", {}); };
-    GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/services/grid_autoscaler/launch_new_workers", launchRequest); };
-    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/grid_autoscaler/terminating_workers", workers); };
-    GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/services/grid_autoscaler/is_enabled", {}); };
-    GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/services/grid_autoscaler/enable", {}); };
-    GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/services/grid_autoscaler/disable", {}); };
-    GridAutoScaler.prototype.hasMaxWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/has_max_workers_cap", {}); };
-    GridAutoScaler.prototype.hasMinWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/has_min_workers_cap", {}); };
-    GridAutoScaler.prototype.getMaxWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_max_workers_cap", {}); };
-    GridAutoScaler.prototype.setMaxWorkersCap = function (value) { return this.api.$J("POST", "/services/grid_autoscaler/set_max_workers_cap", value); };
-    GridAutoScaler.prototype.getMinWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_min_workers_cap", {}); };
-    GridAutoScaler.prototype.setMinWorkersCap = function (value) { return this.api.$J("POST", "/services/grid_autoscaler/set_min_workers_cap", value); };
-    GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_launching_workers", {}); };
-    GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/services/grid_autoscaler", {}); };
-    GridAutoScaler.prototype.getImplementationConfigUrl = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_impl_config_url", {}); };
+    GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {}); };
+    GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest); };
+    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/autoscaler/terminating_workers", workers); };
+    GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/services/autoscaler/is_enabled", {}); };
+    GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/services/autoscaler/enable", {}); };
+    GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/services/autoscaler/disable", {}); };
+    GridAutoScaler.prototype.hasMaxWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/has_max_workers_cap", {}); };
+    GridAutoScaler.prototype.hasMinWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/has_min_workers_cap", {}); };
+    GridAutoScaler.prototype.getMaxWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/get_max_workers_cap", {}); };
+    GridAutoScaler.prototype.setMaxWorkersCap = function (value) { return this.api.$J("POST", "/services/autoscaler/set_max_workers_cap", value); };
+    GridAutoScaler.prototype.getMinWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/get_min_workers_cap", {}); };
+    GridAutoScaler.prototype.setMinWorkersCap = function (value) { return this.api.$J("POST", "/services/autoscaler/set_min_workers_cap", value); };
+    GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {}); };
+    GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/services/autoscaler", {}); };
+    GridAutoScaler.prototype.getImplementationConfigUrl = function () { return this.api.$J("GET", "/services/autoscaler/get_impl_config_url", {}); };
     return GridAutoScaler;
 }());
 var SessionBase = (function (_super) {
@@ -266,7 +266,7 @@ var SessionBase = (function (_super) {
         configurable: true
     });
     SessionBase.prototype.getTimes = function () { return this.$J("GET", '/services/times', {}); };
-    SessionBase.prototype.autoScalerAvailable = function () { return this.$J("GET", '/services/autoscaler_exists', {}); };
+    SessionBase.prototype.autoScalerAvailable = function () { return this.$J("GET", '/services/autoscaler_available', {}); };
     SessionBase.prototype.runJob = function (jobSubmit) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
