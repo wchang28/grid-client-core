@@ -2,7 +2,7 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import {Utils} from './utils';
-import {IAutoScalableGrid, IAutoScalableState} from 'autoscalable-grid';
+import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorkersLaunchRequest, WorkerKey, IGridAutoScalerJSON} from 'autoscalable-grid';
 
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
@@ -201,15 +201,37 @@ class GridJob extends ApiCore implements IGridJob {
 
 class AutoScalableGrid implements IAutoScalableGrid {
     constructor(private api: ApiCore) {}
+    getWorkers(workerIds: string[]) : Promise<IWorker[]> {return this.api.$J("GET", "/services/scalable/get_workers", workerIds);}
+    disableWorkers(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/services/scalable/disable_workers", workerIds);}
+    setWorkersTerminating(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds);}
     getCurrentState() : Promise<IAutoScalableState> {return this.api.$J("GET", "/services/scalable/state", {});}
-    disableWorkers (workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/services/scalable/disable_workers", workerIds);}
-    setWorkersTerminating (workerIds: string[]) : Promise<any>{return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds);}
 }
 
-export interface ISession {
+class GridAutoScaler implements IGridAutoScaler {
+    constructor(private api: ApiCore) {}
+    isScalingUp() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_scaling_up", {});}
+    launchNewWorkers(launchRequest: IWorkersLaunchRequest) : Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/launch_new_workers", launchRequest);}
+    terminateWorkers(workers: IWorker[]) : Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/terminating_workers", workers);}
+    isEnabled() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_enabled", {});}
+    enable() : Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/enable", {});}
+    disable() : Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/disable", {});}
+    hasMaxWorkersCap() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_max_workers_cap", {});}
+    hasMinWorkersCap() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_min_workers_cap", {});}
+    getMaxWorkersCap() : Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_max_workers_cap", {});}
+    setMaxWorkersCap(value: number) : Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_max_workers_cap", value);}
+    getMinWorkersCap() : Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_min_workers_cap", {});}
+    setMinWorkersCap(value: number) : Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_min_workers_cap", value);}
+    getLaunchingWorkers() : Promise<WorkerKey[]> {return this.api.$J("GET", "/services/grid_autoscaler/get_launching_workers", {});}
+    getJSON() : Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/grid_autoscaler", {});}
+    getImplementationConfigUrl() : Promise<string> {return this.api.$J("GET", "/services/grid_autoscaler/get_impl_config_url", {});}
+}
+
+export interface ISessionBase {
     createMsgClient: () => IMessageClient;
     readonly AutoScalableGrid: IAutoScalableGrid;
+    readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
+    autoScalerExists: () => Promise<boolean>;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId:string, failedTasksOnly:boolean) => IGridJob;
@@ -225,10 +247,13 @@ export interface ISession {
     getConnections: () => Promise<any>;
     setNodeEnabled: (nodeId:string, enabled: boolean) => Promise<interf.INodeItem>;
     getTaskResult: (jobId: string, taskIndex: number) => Promise<interf.ITaskResult>;
+}
+
+export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
 
-export class SessionBase extends ApiCore {
+export class SessionBase extends ApiCore implements ISessionBase {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant) {
         super($drver, access, tokenGrant);
     }
@@ -236,9 +261,9 @@ export class SessionBase extends ApiCore {
         return this.$M();
     }
     get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
-    getTimes(): Promise<interf.Times> {
-        return this.$J("GET", '/services/times', {});
-    }
+    get GridAutoScaler(): IGridAutoScaler {return new GridAutoScaler(this);}
+    getTimes(): Promise<interf.Times> {return this.$J("GET", '/services/times', {});}
+    autoScalerExists():Promise<boolean> {return this.$J("GET", '/services/autoscaler_exists', {});}
     runJob(jobSubmit:interf.IGridJobSubmit) : IGridJob {
         let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
@@ -255,9 +280,7 @@ export class SessionBase extends ApiCore {
         let js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
         return js.submit();
     }
-    getMostRecentJobs() : Promise<interf.IJobInfo[]> {
-        return this.$J("GET", '/services/job/most_recent', {});
-    }
+    getMostRecentJobs() : Promise<interf.IJobInfo[]> {return this.$J("GET", '/services/job/most_recent', {});}
     killJob(jobId: string) : Promise<any> {
         let path = Utils.getJobOpPath(jobId, 'kill');
         return this.$J("GET", path, {});
@@ -274,9 +297,7 @@ export class SessionBase extends ApiCore {
         let path = Utils.getJobOpPath(jobId, 'result');
         return this.$J("GET", path, {});
     }
-    getDispatcherJSON() : Promise<interf.IDispatcherJSON> {
-        return this.$J("GET", '/services/dispatcher', {});
-    }
+    getDispatcherJSON() : Promise<interf.IDispatcherJSON> {return this.$J("GET", '/services/dispatcher', {});}
     setDispatchingEnabled(enabled: boolean): Promise<interf.IDispControl> {
         let path = "/services/dispatcher/dispatching/" + (enabled? "start": "stop");
         return this.$J("GET", path, {});
@@ -285,9 +306,7 @@ export class SessionBase extends ApiCore {
         let path = "/services/dispatcher/queue/" + (open? "open": "close");
         return this.$J("GET", path, {});
     }
-    getConnections() : Promise<any> {
-        return this.$J("GET", '/services/connections', {});
-    }
+    getConnections() : Promise<any> {return this.$J("GET", '/services/connections', {});}
     setNodeEnabled(nodeId:string, enabled: boolean): Promise<interf.INodeItem> {
         let path = Utils.getNodePath(nodeId, (enabled ? "enable": "disable"));
         return this.$J("GET", path, {});
@@ -301,3 +320,4 @@ export class SessionBase extends ApiCore {
 export {$Driver, OAuth2Access, IOAuth2TokenGrant} from 'rcf';
 export {Utils} from  './utils';
 export * from './messaging';
+export * from 'autoscalable-grid';

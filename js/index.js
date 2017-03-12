@@ -220,10 +220,32 @@ var AutoScalableGrid = (function () {
     function AutoScalableGrid(api) {
         this.api = api;
     }
-    AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/services/scalable/state", {}); };
+    AutoScalableGrid.prototype.getWorkers = function (workerIds) { return this.api.$J("GET", "/services/scalable/get_workers", workerIds); };
     AutoScalableGrid.prototype.disableWorkers = function (workerIds) { return this.api.$J("POST", "/services/scalable/disable_workers", workerIds); };
     AutoScalableGrid.prototype.setWorkersTerminating = function (workerIds) { return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds); };
+    AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/services/scalable/state", {}); };
     return AutoScalableGrid;
+}());
+var GridAutoScaler = (function () {
+    function GridAutoScaler(api) {
+        this.api = api;
+    }
+    GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/services/grid_autoscaler/is_scaling_up", {}); };
+    GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/services/grid_autoscaler/launch_new_workers", launchRequest); };
+    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/grid_autoscaler/terminating_workers", workers); };
+    GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/services/grid_autoscaler/is_enabled", {}); };
+    GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/services/grid_autoscaler/enable", {}); };
+    GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/services/grid_autoscaler/disable", {}); };
+    GridAutoScaler.prototype.hasMaxWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/has_max_workers_cap", {}); };
+    GridAutoScaler.prototype.hasMinWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/has_min_workers_cap", {}); };
+    GridAutoScaler.prototype.getMaxWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_max_workers_cap", {}); };
+    GridAutoScaler.prototype.setMaxWorkersCap = function (value) { return this.api.$J("POST", "/services/grid_autoscaler/set_max_workers_cap", value); };
+    GridAutoScaler.prototype.getMinWorkersCap = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_min_workers_cap", {}); };
+    GridAutoScaler.prototype.setMinWorkersCap = function (value) { return this.api.$J("POST", "/services/grid_autoscaler/set_min_workers_cap", value); };
+    GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_launching_workers", {}); };
+    GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/services/grid_autoscaler", {}); };
+    GridAutoScaler.prototype.getImplementationConfigUrl = function () { return this.api.$J("GET", "/services/grid_autoscaler/get_impl_config_url", {}); };
+    return GridAutoScaler;
 }());
 var SessionBase = (function (_super) {
     __extends(SessionBase, _super);
@@ -238,9 +260,13 @@ var SessionBase = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    SessionBase.prototype.getTimes = function () {
-        return this.$J("GET", '/services/times', {});
-    };
+    Object.defineProperty(SessionBase.prototype, "GridAutoScaler", {
+        get: function () { return new GridAutoScaler(this); },
+        enumerable: true,
+        configurable: true
+    });
+    SessionBase.prototype.getTimes = function () { return this.$J("GET", '/services/times', {}); };
+    SessionBase.prototype.autoScalerExists = function () { return this.$J("GET", '/services/autoscaler_exists', {}); };
     SessionBase.prototype.runJob = function (jobSubmit) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
@@ -257,9 +283,7 @@ var SessionBase = (function (_super) {
         var js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
         return js.submit();
     };
-    SessionBase.prototype.getMostRecentJobs = function () {
-        return this.$J("GET", '/services/job/most_recent', {});
-    };
+    SessionBase.prototype.getMostRecentJobs = function () { return this.$J("GET", '/services/job/most_recent', {}); };
     SessionBase.prototype.killJob = function (jobId) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'kill');
         return this.$J("GET", path, {});
@@ -276,9 +300,7 @@ var SessionBase = (function (_super) {
         var path = utils_1.Utils.getJobOpPath(jobId, 'result');
         return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getDispatcherJSON = function () {
-        return this.$J("GET", '/services/dispatcher', {});
-    };
+    SessionBase.prototype.getDispatcherJSON = function () { return this.$J("GET", '/services/dispatcher', {}); };
     SessionBase.prototype.setDispatchingEnabled = function (enabled) {
         var path = "/services/dispatcher/dispatching/" + (enabled ? "start" : "stop");
         return this.$J("GET", path, {});
@@ -287,9 +309,7 @@ var SessionBase = (function (_super) {
         var path = "/services/dispatcher/queue/" + (open ? "open" : "close");
         return this.$J("GET", path, {});
     };
-    SessionBase.prototype.getConnections = function () {
-        return this.$J("GET", '/services/connections', {});
-    };
+    SessionBase.prototype.getConnections = function () { return this.$J("GET", '/services/connections', {}); };
     SessionBase.prototype.setNodeEnabled = function (nodeId, enabled) {
         var path = utils_1.Utils.getNodePath(nodeId, (enabled ? "enable" : "disable"));
         return this.$J("GET", path, {});

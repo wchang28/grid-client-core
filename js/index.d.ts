@@ -3,7 +3,7 @@
 import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
-import { IAutoScalableGrid } from 'autoscalable-grid';
+import { IAutoScalableGrid, IGridAutoScaler } from 'autoscalable-grid';
 export interface MessageCallback {
     (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
 }
@@ -32,10 +32,12 @@ export interface IGridJob {
     run(): void;
     on: (event: string, listener: Function) => this;
 }
-export interface ISession {
+export interface ISessionBase {
     createMsgClient: () => IMessageClient;
     readonly AutoScalableGrid: IAutoScalableGrid;
+    readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
+    autoScalerExists: () => Promise<boolean>;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit: interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId: string, failedTasksOnly: boolean) => IGridJob;
@@ -51,13 +53,17 @@ export interface ISession {
     getConnections: () => Promise<any>;
     setNodeEnabled: (nodeId: string, enabled: boolean) => Promise<interf.INodeItem>;
     getTaskResult: (jobId: string, taskIndex: number) => Promise<interf.ITaskResult>;
+}
+export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
-export declare class SessionBase extends ApiCore {
+export declare class SessionBase extends ApiCore implements ISessionBase {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
     createMsgClient(): IMessageClient;
     readonly AutoScalableGrid: IAutoScalableGrid;
+    readonly GridAutoScaler: IGridAutoScaler;
     getTimes(): Promise<interf.Times>;
+    autoScalerExists(): Promise<boolean>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
     sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
     reRunJob(oldJobId: string, failedTasksOnly: boolean): IGridJob;
@@ -77,3 +83,4 @@ export declare class SessionBase extends ApiCore {
 export { $Driver, OAuth2Access, IOAuth2TokenGrant } from 'rcf';
 export { Utils } from './utils';
 export * from './messaging';
+export * from 'autoscalable-grid';
