@@ -266,7 +266,7 @@ var SessionBase = (function (_super) {
         configurable: true
     });
     SessionBase.prototype.getTimes = function () { return this.$J("GET", '/services/times', {}); };
-    SessionBase.prototype.autoScalerExists = function () { return this.$J("GET", '/services/autoscaler_exists', {}); };
+    SessionBase.prototype.autoScalerAvailable = function () { return this.$J("GET", '/services/autoscaler_exists', {}); };
     SessionBase.prototype.runJob = function (jobSubmit) {
         var js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);

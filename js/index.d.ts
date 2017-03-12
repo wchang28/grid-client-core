@@ -37,7 +37,7 @@ export interface ISessionBase {
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
-    autoScalerExists: () => Promise<boolean>;
+    autoScalerAvailable: () => Promise<boolean>;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit: interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId: string, failedTasksOnly: boolean) => IGridJob;
@@ -63,7 +63,7 @@ export declare class SessionBase extends ApiCore implements ISessionBase {
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
     getTimes(): Promise<interf.Times>;
-    autoScalerExists(): Promise<boolean>;
+    autoScalerAvailable(): Promise<boolean>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;
     sumbitJob(jobSubmit: interf.IGridJobSubmit): Promise<interf.IJobProgress>;
     reRunJob(oldJobId: string, failedTasksOnly: boolean): IGridJob;

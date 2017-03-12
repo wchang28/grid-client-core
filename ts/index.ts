@@ -209,21 +209,21 @@ class AutoScalableGrid implements IAutoScalableGrid {
 
 class GridAutoScaler implements IGridAutoScaler {
     constructor(private api: ApiCore) {}
-    isScalingUp() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_scaling_up", {});}
-    launchNewWorkers(launchRequest: IWorkersLaunchRequest) : Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/launch_new_workers", launchRequest);}
-    terminateWorkers(workers: IWorker[]) : Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/terminating_workers", workers);}
-    isEnabled() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_enabled", {});}
-    enable() : Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/enable", {});}
-    disable() : Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/disable", {});}
-    hasMaxWorkersCap() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_max_workers_cap", {});}
-    hasMinWorkersCap() : Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_min_workers_cap", {});}
-    getMaxWorkersCap() : Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_max_workers_cap", {});}
-    setMaxWorkersCap(value: number) : Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_max_workers_cap", value);}
-    getMinWorkersCap() : Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_min_workers_cap", {});}
-    setMinWorkersCap(value: number) : Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_min_workers_cap", value);}
-    getLaunchingWorkers() : Promise<WorkerKey[]> {return this.api.$J("GET", "/services/grid_autoscaler/get_launching_workers", {});}
-    getJSON() : Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/grid_autoscaler", {});}
-    getImplementationConfigUrl() : Promise<string> {return this.api.$J("GET", "/services/grid_autoscaler/get_impl_config_url", {});}
+    isScalingUp(): Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_scaling_up", {});}
+    launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/launch_new_workers", launchRequest);}
+    terminateWorkers(workers: IWorker[]): Promise<boolean> {return this.api.$J("POST", "/services/grid_autoscaler/terminating_workers", workers);}
+    isEnabled(): Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/is_enabled", {});}
+    enable(): Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/enable", {});}
+    disable(): Promise<any> {return this.api.$J("POST", "/services/grid_autoscaler/disable", {});}
+    hasMaxWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_max_workers_cap", {});}
+    hasMinWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/services/grid_autoscaler/has_min_workers_cap", {});}
+    getMaxWorkersCap(): Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_max_workers_cap", {});}
+    setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_max_workers_cap", value);}
+    getMinWorkersCap(): Promise<number> {return this.api.$J("GET", "/services/grid_autoscaler/get_min_workers_cap", {});}
+    setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/grid_autoscaler/set_min_workers_cap", value);}
+    getLaunchingWorkers(): Promise<WorkerKey[]> {return this.api.$J("GET", "/services/grid_autoscaler/get_launching_workers", {});}
+    getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/grid_autoscaler", {});}
+    getImplementationConfigUrl(): Promise<string> {return this.api.$J("GET", "/services/grid_autoscaler/get_impl_config_url", {});}
 }
 
 export interface ISessionBase {
@@ -231,7 +231,7 @@ export interface ISessionBase {
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
-    autoScalerExists: () => Promise<boolean>;
+    autoScalerAvailable: () => Promise<boolean>;
     runJob: (jobSubmit:interf.IGridJobSubmit) => IGridJob;
     sumbitJob: (jobSubmit:interf.IGridJobSubmit) => Promise<interf.IJobProgress>;
     reRunJob: (oldJobId:string, failedTasksOnly:boolean) => IGridJob;
@@ -263,7 +263,7 @@ export class SessionBase extends ApiCore implements ISessionBase {
     get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
     get GridAutoScaler(): IGridAutoScaler {return new GridAutoScaler(this);}
     getTimes(): Promise<interf.Times> {return this.$J("GET", '/services/times', {});}
-    autoScalerExists():Promise<boolean> {return this.$J("GET", '/services/autoscaler_exists', {});}
+    autoScalerAvailable(): Promise<boolean> {return this.$J("GET", '/services/autoscaler_exists', {});}
     runJob(jobSubmit:interf.IGridJobSubmit) : IGridJob {
         let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
         return new GridJob(this.$driver, this.access, this.tokenGrant, js);
