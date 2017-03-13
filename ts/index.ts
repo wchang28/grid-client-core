@@ -211,7 +211,7 @@ class GridAutoScaler implements IGridAutoScaler {
     constructor(private api: ApiCore) {}
     isScalingUp(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {});}
     launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<boolean> {return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest);}
-    terminateWorkers(workers: IWorker[]): Promise<boolean> {return this.api.$J("POST", "/services/autoscaler/terminating_workers", workers);}
+    terminateWorkers(workers: IWorker[]): Promise<boolean> {return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers);}
     isEnabled(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_enabled", {});}
     enable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/enable", {});}
     disable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/disable", {});}

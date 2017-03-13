@@ -232,7 +232,7 @@ var GridAutoScaler = (function () {
     }
     GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {}); };
     GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest); };
-    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/autoscaler/terminating_workers", workers); };
+    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers); };
     GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/services/autoscaler/is_enabled", {}); };
     GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/services/autoscaler/enable", {}); };
     GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/services/autoscaler/disable", {}); };
