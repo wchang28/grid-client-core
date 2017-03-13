@@ -221,6 +221,10 @@ class GridAutoScaler implements IGridAutoScaler {
     setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_max_workers_cap", value);}
     getMinWorkersCap(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_min_workers_cap", {});}
     setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_min_workers_cap", value);}
+    getTerminateWorkerAfterMinutesIdle(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_terminate_worker_after_minutes_idle", {});}
+    setTerminateWorkerAfterMinutesIdle(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_terminate_worker_after_minutes_idle", value);}
+    getRampUpSpeedRatio(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_ramp_up_speed_ratio", {});}
+    setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_ramp_up_speed_ratio", value);}
     getLaunchingWorkers(): Promise<WorkerKey[]> {return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {});}
     getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/autoscaler", {});}
     getImplementationConfigUrl(): Promise<string> {return this.api.$J("GET", "/services/autoscaler/get_impl_config_url", {});}
