@@ -2,7 +2,7 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import {Utils} from './utils';
-import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorkersLaunchRequest, WorkerKey, LaunchingWorker, IGridAutoScalerJSON} from 'autoscalable-grid';
+import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorkersLaunchRequest, WorkerKey, LaunchingWorker, TerminatingWorker, IGridAutoScalerJSON} from 'autoscalable-grid';
 
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
@@ -210,8 +210,8 @@ class AutoScalableGrid implements IAutoScalableGrid {
 class GridAutoScaler implements IGridAutoScaler {
     constructor(private api: ApiCore) {}
     isScalingUp(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {});}
-    launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<boolean> {return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest);}
-    terminateWorkers(workers: IWorker[]): Promise<boolean> {return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers);}
+    launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<LaunchingWorker[]> {return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest);}
+    terminateWorkers(workers: IWorker[]): Promise<TerminatingWorker[]> {return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers);}
     isEnabled(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_enabled", {});}
     enable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/enable", {});}
     disable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/disable", {});}
