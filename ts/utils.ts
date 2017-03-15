@@ -9,6 +9,7 @@ export class Utils {
     static getJobsTrackingTopic() : string {return '/topic/jobs-tracking';}
     static getConnectionsTopic() : string {return '/topic/connections';}
     static getAutoScalerTopic(): string {return '/topic/autoscaler';}
+    static getAutoScalerImplementation(): string {return '/topic/autoscaler/implementation';}
     static getJobNotificationTopic(jobId:string) : string {return '/topic/job/' + jobId;}
 
     static getJobOpPath(jobId:string, op:string):string {return '/services/job/' + jobId + '/' + op;}
