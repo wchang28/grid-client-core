@@ -20,10 +20,10 @@ export interface IMessageClient {
 }
 
 class MessageClient implements IMessageClient {
-    constructor(protected __msgClient: rcf.IMessageClient) {}
+    constructor(protected __msgClient: rcf.IMessageClient, protected topicBasePath: string = '') {}
     subscribe(destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) : Promise<string> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            let sub_id = this.__msgClient.subscribe(destination, (msg: rcf.IMessage) => {
+            let sub_id = this.__msgClient.subscribe(this.topicBasePath + destination, (msg: rcf.IMessage) => {
                 let gMsg: interf.GridMessage = msg.body;
                 cb(gMsg, msg.headers);
             }, headers, (err: any) => {
@@ -63,7 +63,7 @@ class MessageClient implements IMessageClient {
 
 export class ApiCore extends events.EventEmitter {
     private __authApi: rcf.AuthorizedRestApi
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant) {
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, protected topicBasePath: string = '') {
         super();
         this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         this.__authApi.on('on_access_refreshed', (newAccess: rcf.OAuth2Access) => {
@@ -73,6 +73,7 @@ export class ApiCore extends events.EventEmitter {
     get $driver() : rcf.$Driver {return this.__authApi.$driver;}
     get access() : rcf.OAuth2Access {return this.__authApi.access;}
     get tokenGrant() : rcf.IOAuth2TokenGrant {return this.__authApi.tokenGrant;}
+    get instance_url() :string {return this.__authApi.instance_url;}  
     $J(method: string, pathname: string, data: any) : Promise<any> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
             this.__authApi.$JP(method, pathname, data)
@@ -83,9 +84,7 @@ export class ApiCore extends events.EventEmitter {
             });
         });
     }
-    $M() : IMessageClient {
-        return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions));
-    }
+    $M() : IMessageClient {return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicBasePath);}
 }
 
 interface IJobSubmitter {
@@ -232,6 +231,11 @@ class GridAutoScaler implements IGridAutoScaler {
     getImplementationConfigUrl(): Promise<string> {return this.api.$J("GET", "/services/autoscaler/get_impl_config_url", {});}
 }
 
+export interface IAutoScalerImplementation$ {
+    $J: (method: string, pathname: string, data: any) => Promise<any>;
+    $M: () => IMessageClient;
+}
+
 export interface ISessionBase {
     createMsgClient: () => IMessageClient;
     readonly AutoScalableGrid: IAutoScalableGrid;
@@ -268,6 +272,11 @@ export class SessionBase extends ApiCore implements ISessionBase {
     }
     get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
     get GridAutoScaler(): IGridAutoScaler {return new GridAutoScaler(this);}
+    get AutoScalerImplementation$() : IAutoScalerImplementation$ {
+        let access:rcf.OAuth2Access = (this.access ? JSON.parse(JSON.stringify(this.access)) : {});
+        access.instance_url = this.instance_url + Utils.getAutoScalerImplementationApiBasePath();
+        return new ApiCore(this.$driver, access, this.tokenGrant, Utils.getAutoScalerImplementationTopic());
+    }
     getTimes(): Promise<interf.Times> {return this.$J("GET", '/services/times', {});}
     autoScalerAvailable(): Promise<boolean> {return this.$J("GET", '/services/autoscaler_available', {});}
     runJob(jobSubmit:interf.IGridJobSubmit) : IGridJob {

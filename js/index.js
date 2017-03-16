@@ -10,13 +10,15 @@ var utils_1 = require("./utils");
 var eventStreamPathname = '/services/events/event_stream';
 var clientOptions = { reconnetIntervalMS: 10000 };
 var MessageClient = (function () {
-    function MessageClient(__msgClient) {
+    function MessageClient(__msgClient, topicBasePath) {
+        if (topicBasePath === void 0) { topicBasePath = ''; }
         this.__msgClient = __msgClient;
+        this.topicBasePath = topicBasePath;
     }
     MessageClient.prototype.subscribe = function (destination, cb, headers) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            var sub_id = _this.__msgClient.subscribe(destination, function (msg) {
+            var sub_id = _this.__msgClient.subscribe(_this.topicBasePath + destination, function (msg) {
                 var gMsg = msg.body;
                 cb(gMsg, msg.headers);
             }, headers, function (err) {
@@ -58,8 +60,10 @@ var MessageClient = (function () {
 }());
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
-    function ApiCore($drver, access, tokenGrant) {
+    function ApiCore($drver, access, tokenGrant, topicBasePath) {
+        if (topicBasePath === void 0) { topicBasePath = ''; }
         var _this = _super.call(this) || this;
+        _this.topicBasePath = topicBasePath;
         _this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         _this.__authApi.on('on_access_refreshed', function (newAccess) {
             _this.emit('on_access_refreshed', newAccess);
@@ -81,6 +85,11 @@ var ApiCore = (function (_super) {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(ApiCore.prototype, "instance_url", {
+        get: function () { return this.__authApi.instance_url; },
+        enumerable: true,
+        configurable: true
+    });
     ApiCore.prototype.$J = function (method, pathname, data) {
         var _this = this;
         return new Promise(function (resolve, reject) {
@@ -92,9 +101,7 @@ var ApiCore = (function (_super) {
             });
         });
     };
-    ApiCore.prototype.$M = function () {
-        return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions));
-    };
+    ApiCore.prototype.$M = function () { return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicBasePath); };
     return ApiCore;
 }(events.EventEmitter));
 exports.ApiCore = ApiCore;
@@ -268,6 +275,15 @@ var SessionBase = (function (_super) {
     });
     Object.defineProperty(SessionBase.prototype, "GridAutoScaler", {
         get: function () { return new GridAutoScaler(this); },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SessionBase.prototype, "AutoScalerImplementation$", {
+        get: function () {
+            var access = (this.access ? JSON.parse(JSON.stringify(this.access)) : {});
+            access.instance_url = this.instance_url + utils_1.Utils.getAutoScalerImplementationApiBasePath();
+            return new ApiCore(this.$driver, access, this.tokenGrant, utils_1.Utils.getAutoScalerImplementationTopic());
+        },
         enumerable: true,
         configurable: true
     });

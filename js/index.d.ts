@@ -19,11 +19,13 @@ export interface IMessageClient {
     on: (event: string, listener: Function) => this;
 }
 export declare class ApiCore extends events.EventEmitter {
+    protected topicBasePath: string;
     private __authApi;
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, topicBasePath?: string);
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
     readonly tokenGrant: rcf.IOAuth2TokenGrant;
+    readonly instance_url: string;
     $J(method: string, pathname: string, data: any): Promise<any>;
     $M(): IMessageClient;
 }
@@ -31,6 +33,10 @@ export interface IGridJob {
     jobId?: string;
     run(): void;
     on: (event: string, listener: Function) => this;
+}
+export interface IAutoScalerImplementation$ {
+    $J: (method: string, pathname: string, data: any) => Promise<any>;
+    $M: () => IMessageClient;
 }
 export interface ISessionBase {
     createMsgClient: () => IMessageClient;
@@ -62,6 +68,7 @@ export declare class SessionBase extends ApiCore implements ISessionBase {
     createMsgClient(): IMessageClient;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
+    readonly AutoScalerImplementation$: IAutoScalerImplementation$;
     getTimes(): Promise<interf.Times>;
     autoScalerAvailable(): Promise<boolean>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;

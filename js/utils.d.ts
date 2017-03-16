@@ -4,10 +4,11 @@ export declare class Utils {
     static getDispatcherTopic(): string;
     static getJobsTrackingTopic(): string;
     static getConnectionsTopic(): string;
-    static getAutoScalerTopic(): string;
-    static getAutoScalerImplementation(): string;
     static getJobNotificationTopic(jobId: string): string;
+    static getAutoScalerTopic(): string;
+    static getAutoScalerImplementationTopic(): string;
     static getJobOpPath(jobId: string, op: string): string;
     static getNodePath(nodeId: string, op: string): string;
     static getTaskOpPath(jobId: string, taskIndex: number, op?: string): string;
+    static getAutoScalerImplementationApiBasePath(): string;
 }
