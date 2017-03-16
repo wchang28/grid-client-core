@@ -2,7 +2,7 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import {Utils} from './utils';
-import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorkersLaunchRequest, WorkerKey, LaunchingWorker, TerminatingWorker, IGridAutoScalerJSON} from 'autoscalable-grid';
+import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorkersLaunchRequest, WorkerKey, LaunchingWorker, TerminatingWorker, IGridAutoScalerJSON, AutoScalerImplementationInfo} from 'autoscalable-grid';
 
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
@@ -228,7 +228,7 @@ class GridAutoScaler implements IGridAutoScaler {
     setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_ramp_up_speed_ratio", value);}
     getLaunchingWorkers(): Promise<LaunchingWorker[]> {return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {});}
     getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/autoscaler", {});}
-    getImplementationConfigUrl(): Promise<string> {return this.api.$J("GET", "/services/autoscaler/get_impl_config_url", {});}
+    getImplementationInfo(): Promise<AutoScalerImplementationInfo> {return this.api.$J("GET", "/services/autoscaler/get_impl_info", {});}
 }
 
 export interface IAutoScalerImplementation$ {

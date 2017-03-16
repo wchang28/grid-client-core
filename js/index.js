@@ -257,7 +257,7 @@ var GridAutoScaler = (function () {
     GridAutoScaler.prototype.setRampUpSpeedRatio = function (value) { return this.api.$J("POST", "/services/autoscaler/set_ramp_up_speed_ratio", value); };
     GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {}); };
     GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/services/autoscaler", {}); };
-    GridAutoScaler.prototype.getImplementationConfigUrl = function () { return this.api.$J("GET", "/services/autoscaler/get_impl_config_url", {}); };
+    GridAutoScaler.prototype.getImplementationInfo = function () { return this.api.$J("GET", "/services/autoscaler/get_impl_info", {}); };
     return GridAutoScaler;
 }());
 var SessionBase = (function (_super) {
