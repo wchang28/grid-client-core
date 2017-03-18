@@ -10,15 +10,15 @@ var utils_1 = require("./utils");
 var eventStreamPathname = '/services/events/event_stream';
 var clientOptions = { reconnetIntervalMS: 10000 };
 var MessageClient = (function () {
-    function MessageClient(__msgClient, topicBasePath) {
-        if (topicBasePath === void 0) { topicBasePath = ''; }
+    function MessageClient(__msgClient, topicMountingPath) {
+        if (topicMountingPath === void 0) { topicMountingPath = ''; }
         this.__msgClient = __msgClient;
-        this.topicBasePath = topicBasePath;
+        this.topicMountingPath = topicMountingPath;
     }
     MessageClient.prototype.subscribe = function (destination, cb, headers) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            var sub_id = _this.__msgClient.subscribe(_this.topicBasePath + destination, function (msg) {
+            var sub_id = _this.__msgClient.subscribe(_this.topicMountingPath + destination, function (msg) {
                 var gMsg = msg.body;
                 cb(gMsg, msg.headers);
             }, headers, function (err) {
@@ -43,7 +43,7 @@ var MessageClient = (function () {
     MessageClient.prototype.send = function (destination, headers, msg) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.__msgClient.send(destination, headers, msg, function (err) {
+            _this.__msgClient.send(_this.topicMountingPath + destination, headers, msg, function (err) {
                 if (err)
                     reject(err);
                 else
@@ -60,10 +60,10 @@ var MessageClient = (function () {
 }());
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
-    function ApiCore($drver, access, tokenGrant, topicBasePath) {
-        if (topicBasePath === void 0) { topicBasePath = ''; }
+    function ApiCore($drver, access, tokenGrant, topicMountingPath) {
+        if (topicMountingPath === void 0) { topicMountingPath = ''; }
         var _this = _super.call(this) || this;
-        _this.topicBasePath = topicBasePath;
+        _this.topicMountingPath = topicMountingPath;
         _this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         _this.__authApi.on('on_access_refreshed', function (newAccess) {
             _this.emit('on_access_refreshed', newAccess);
@@ -101,7 +101,7 @@ var ApiCore = (function (_super) {
             });
         });
     };
-    ApiCore.prototype.$M = function () { return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicBasePath); };
+    ApiCore.prototype.$M = function () { return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath); };
     return ApiCore;
 }(events.EventEmitter));
 exports.ApiCore = ApiCore;

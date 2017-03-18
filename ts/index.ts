@@ -7,9 +7,24 @@ import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorker
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
 
+export interface MessageCallbackT<M> {
+    (msg: M, headers: rcf.IMsgHeaders): void;
+}
+
+export interface IMessageClientT<M> {
+    subscribe: (destination: string, cb: MessageCallbackT<M>, headers?: {[field: string]: any;}) => Promise<string>;
+    unsubscribe: (sub_id: string) => Promise<any>;
+    send: (destination: string, headers: {[field: string]: any;}, msg: M) => Promise<any>;
+    disconnect: () => void;
+    on: (event: string, listener: Function) => this;
+}
+
+export type MessageCallback = MessageCallbackT<interf.GridMessage>;
+/*
 export interface MessageCallback {
     (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
 }
+*/
 
 export interface IMessageClient {
     subscribe: (destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) => Promise<string>;
@@ -20,10 +35,10 @@ export interface IMessageClient {
 }
 
 class MessageClient implements IMessageClient {
-    constructor(protected __msgClient: rcf.IMessageClient, protected topicBasePath: string = '') {}
+    constructor(protected __msgClient: rcf.IMessageClient, protected topicMountingPath: string = '') {}
     subscribe(destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) : Promise<string> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            let sub_id = this.__msgClient.subscribe(this.topicBasePath + destination, (msg: rcf.IMessage) => {
+            let sub_id = this.__msgClient.subscribe(this.topicMountingPath + destination, (msg: rcf.IMessage) => {
                 let gMsg: interf.GridMessage = msg.body;
                 cb(gMsg, msg.headers);
             }, headers, (err: any) => {
@@ -46,7 +61,7 @@ class MessageClient implements IMessageClient {
     }
     send(destination: string, headers: {[field: string]: any}, msg: interf.GridMessage) : Promise<any> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            this.__msgClient.send(destination, headers, msg, (err: any) => {
+            this.__msgClient.send(this.topicMountingPath + destination, headers, msg, (err: any) => {
                 if (err)
                     reject(err);
                 else
@@ -63,7 +78,7 @@ class MessageClient implements IMessageClient {
 
 export class ApiCore extends events.EventEmitter {
     private __authApi: rcf.AuthorizedRestApi
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, protected topicBasePath: string = '') {
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, protected topicMountingPath: string = '') {
         super();
         this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         this.__authApi.on('on_access_refreshed', (newAccess: rcf.OAuth2Access) => {
@@ -84,7 +99,7 @@ export class ApiCore extends events.EventEmitter {
             });
         });
     }
-    $M() : IMessageClient {return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicBasePath);}
+    $M() : IMessageClient {return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);}
 }
 
 interface IJobSubmitter {

@@ -4,9 +4,21 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import { IAutoScalableGrid, IGridAutoScaler } from 'autoscalable-grid';
-export interface MessageCallback {
-    (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
+export interface MessageCallbackT<M> {
+    (msg: M, headers: rcf.IMsgHeaders): void;
 }
+export interface IMessageClientT<M> {
+    subscribe: (destination: string, cb: MessageCallbackT<M>, headers?: {
+        [field: string]: any;
+    }) => Promise<string>;
+    unsubscribe: (sub_id: string) => Promise<any>;
+    send: (destination: string, headers: {
+        [field: string]: any;
+    }, msg: M) => Promise<any>;
+    disconnect: () => void;
+    on: (event: string, listener: Function) => this;
+}
+export declare type MessageCallback = MessageCallbackT<interf.GridMessage>;
 export interface IMessageClient {
     subscribe: (destination: string, cb: MessageCallback, headers?: {
         [field: string]: any;
@@ -19,9 +31,9 @@ export interface IMessageClient {
     on: (event: string, listener: Function) => this;
 }
 export declare class ApiCore extends events.EventEmitter {
-    protected topicBasePath: string;
+    protected topicMountingPath: string;
     private __authApi;
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, topicBasePath?: string);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, topicMountingPath?: string);
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
     readonly tokenGrant: rcf.IOAuth2TokenGrant;
