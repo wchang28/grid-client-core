@@ -19,8 +19,8 @@ var MessageClient = (function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             var sub_id = _this.__msgClient.subscribe(_this.topicMountingPath + destination, function (msg) {
-                var gMsg = msg.body;
-                cb(gMsg, msg.headers);
+                var m = msg.body;
+                cb(m, msg.headers);
             }, headers, function (err) {
                 if (err)
                     reject(err);
@@ -58,6 +58,8 @@ var MessageClient = (function () {
     };
     return MessageClient;
 }());
+exports.MessageClient = MessageClient;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
     function ApiCore($drver, access, tokenGrant, topicMountingPath) {
@@ -102,6 +104,12 @@ var ApiCore = (function (_super) {
         });
     };
     ApiCore.prototype.$M = function () { return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath); };
+    ApiCore.prototype.mount = function (mountingPath, topicMountingPath) {
+        if (topicMountingPath === void 0) { topicMountingPath = ''; }
+        var access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
+        access.instance_url = this.__authApi.instance_url + mountingPath;
+        return new ApiCore(this.__authApi.$driver, access, this.tokenGrant, this.topicMountingPath + topicMountingPath);
+    };
     return ApiCore;
 }(events.EventEmitter));
 exports.ApiCore = ApiCore;
@@ -227,37 +235,37 @@ var AutoScalableGrid = (function () {
     function AutoScalableGrid(api) {
         this.api = api;
     }
-    AutoScalableGrid.prototype.getWorkers = function (workerIds) { return this.api.$J("GET", "/services/scalable/get_workers", workerIds); };
-    AutoScalableGrid.prototype.disableWorkers = function (workerIds) { return this.api.$J("POST", "/services/scalable/disable_workers", workerIds); };
-    AutoScalableGrid.prototype.setWorkersTerminating = function (workerIds) { return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds); };
-    AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/services/scalable/state", {}); };
+    AutoScalableGrid.prototype.getWorkers = function (workerIds) { return this.api.$J("GET", "/get_workers", workerIds); };
+    AutoScalableGrid.prototype.disableWorkers = function (workerIds) { return this.api.$J("POST", "/disable_workers", workerIds); };
+    AutoScalableGrid.prototype.setWorkersTerminating = function (workerIds) { return this.api.$J("POST", "/set_workers_terminating", workerIds); };
+    AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/state", {}); };
     return AutoScalableGrid;
 }());
 var GridAutoScaler = (function () {
     function GridAutoScaler(api) {
         this.api = api;
     }
-    GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {}); };
-    GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest); };
-    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers); };
-    GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/services/autoscaler/is_enabled", {}); };
-    GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/services/autoscaler/enable", {}); };
-    GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/services/autoscaler/disable", {}); };
-    GridAutoScaler.prototype.hasMaxWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/has_max_workers_cap", {}); };
-    GridAutoScaler.prototype.hasMinWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/has_min_workers_cap", {}); };
-    GridAutoScaler.prototype.getMaxWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/get_max_workers_cap", {}); };
-    GridAutoScaler.prototype.setMaxWorkersCap = function (value) { return this.api.$J("POST", "/services/autoscaler/set_max_workers_cap", value); };
-    GridAutoScaler.prototype.getMinWorkersCap = function () { return this.api.$J("GET", "/services/autoscaler/get_min_workers_cap", {}); };
-    GridAutoScaler.prototype.setMinWorkersCap = function (value) { return this.api.$J("POST", "/services/autoscaler/set_min_workers_cap", value); };
-    GridAutoScaler.prototype.getLaunchingTimeoutMinutes = function () { return this.api.$J("GET", "/services/autoscaler/get_launching_timeout_minutes", {}); };
-    GridAutoScaler.prototype.setLaunchingTimeoutMinutes = function (value) { return this.api.$J("POST", "/services/autoscaler/set_launching_timeout_minutes", value); };
-    GridAutoScaler.prototype.getTerminateWorkerAfterMinutesIdle = function () { return this.api.$J("GET", "/services/autoscaler/get_terminate_worker_after_minutes_idle", {}); };
-    GridAutoScaler.prototype.setTerminateWorkerAfterMinutesIdle = function (value) { return this.api.$J("POST", "/services/autoscaler/set_terminate_worker_after_minutes_idle", value); };
-    GridAutoScaler.prototype.getRampUpSpeedRatio = function () { return this.api.$J("GET", "/services/autoscaler/get_ramp_up_speed_ratio", {}); };
-    GridAutoScaler.prototype.setRampUpSpeedRatio = function (value) { return this.api.$J("POST", "/services/autoscaler/set_ramp_up_speed_ratio", value); };
-    GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {}); };
-    GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/services/autoscaler", {}); };
-    GridAutoScaler.prototype.getImplementationInfo = function () { return this.api.$J("GET", "/services/autoscaler/get_impl_info", {}); };
+    GridAutoScaler.prototype.isScalingUp = function () { return this.api.$J("GET", "/is_scaling_up", {}); };
+    GridAutoScaler.prototype.launchNewWorkers = function (launchRequest) { return this.api.$J("POST", "/launch_new_workers", launchRequest); };
+    GridAutoScaler.prototype.terminateWorkers = function (workers) { return this.api.$J("POST", "/terminate_workers", workers); };
+    GridAutoScaler.prototype.isEnabled = function () { return this.api.$J("GET", "/is_enabled", {}); };
+    GridAutoScaler.prototype.enable = function () { return this.api.$J("POST", "/enable", {}); };
+    GridAutoScaler.prototype.disable = function () { return this.api.$J("POST", "/disable", {}); };
+    GridAutoScaler.prototype.hasMaxWorkersCap = function () { return this.api.$J("GET", "/has_max_workers_cap", {}); };
+    GridAutoScaler.prototype.hasMinWorkersCap = function () { return this.api.$J("GET", "/has_min_workers_cap", {}); };
+    GridAutoScaler.prototype.getMaxWorkersCap = function () { return this.api.$J("GET", "/get_max_workers_cap", {}); };
+    GridAutoScaler.prototype.setMaxWorkersCap = function (value) { return this.api.$J("POST", "/set_max_workers_cap", value); };
+    GridAutoScaler.prototype.getMinWorkersCap = function () { return this.api.$J("GET", "/get_min_workers_cap", {}); };
+    GridAutoScaler.prototype.setMinWorkersCap = function (value) { return this.api.$J("POST", "/set_min_workers_cap", value); };
+    GridAutoScaler.prototype.getLaunchingTimeoutMinutes = function () { return this.api.$J("GET", "/get_launching_timeout_minutes", {}); };
+    GridAutoScaler.prototype.setLaunchingTimeoutMinutes = function (value) { return this.api.$J("POST", "/set_launching_timeout_minutes", value); };
+    GridAutoScaler.prototype.getTerminateWorkerAfterMinutesIdle = function () { return this.api.$J("GET", "/get_terminate_worker_after_minutes_idle", {}); };
+    GridAutoScaler.prototype.setTerminateWorkerAfterMinutesIdle = function (value) { return this.api.$J("POST", "/set_terminate_worker_after_minutes_idle", value); };
+    GridAutoScaler.prototype.getRampUpSpeedRatio = function () { return this.api.$J("GET", "/get_ramp_up_speed_ratio", {}); };
+    GridAutoScaler.prototype.setRampUpSpeedRatio = function (value) { return this.api.$J("POST", "/set_ramp_up_speed_ratio", value); };
+    GridAutoScaler.prototype.getLaunchingWorkers = function () { return this.api.$J("GET", "/get_launching_workers", {}); };
+    GridAutoScaler.prototype.getJSON = function () { return this.api.$J("GET", "/", {}); };
+    GridAutoScaler.prototype.getImplementationInfo = function () { return this.api.$J("GET", "/get_impl_info", {}); };
     return GridAutoScaler;
 }());
 var SessionBase = (function (_super) {
@@ -269,20 +277,18 @@ var SessionBase = (function (_super) {
         return this.$M();
     };
     Object.defineProperty(SessionBase.prototype, "AutoScalableGrid", {
-        get: function () { return new AutoScalableGrid(this); },
+        get: function () { return new AutoScalableGrid(this.mount('/services/scalable')); },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(SessionBase.prototype, "GridAutoScaler", {
-        get: function () { return new GridAutoScaler(this); },
+        get: function () { return new GridAutoScaler(this.mount('/services/autoscaler')); },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(SessionBase.prototype, "AutoScalerImplementation$", {
+    Object.defineProperty(SessionBase.prototype, "AutoScalerImplementationApiCore", {
         get: function () {
-            var access = (this.access ? JSON.parse(JSON.stringify(this.access)) : {});
-            access.instance_url = this.instance_url + utils_1.Utils.getAutoScalerImplementationApiBasePath();
-            return new ApiCore(this.$driver, access, this.tokenGrant, utils_1.Utils.getAutoScalerImplementationTopic());
+            return this.mount(utils_1.Utils.getAutoScalerImplementationApiBasePath(), utils_1.Utils.getAutoScalerImplementationTopic());
         },
         enumerable: true,
         configurable: true

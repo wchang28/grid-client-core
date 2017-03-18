@@ -4,33 +4,33 @@ import * as events from 'events';
 import * as rcf from 'rcf';
 import * as interf from './messaging';
 import { IAutoScalableGrid, IGridAutoScaler } from 'autoscalable-grid';
-export interface MessageCallbackT<M> {
-    (msg: M, headers: rcf.IMsgHeaders): void;
-}
-export interface IMessageClientT<M> {
-    subscribe: (destination: string, cb: MessageCallbackT<M>, headers?: {
+export declare type MessageCallback<MSG_TYPE> = (msg: MSG_TYPE, headers: rcf.IMsgHeaders) => void;
+export interface IMessageClient<MSG_TYPE> {
+    subscribe: (destination: string, cb: MessageCallback<MSG_TYPE>, headers?: {
         [field: string]: any;
     }) => Promise<string>;
     unsubscribe: (sub_id: string) => Promise<any>;
     send: (destination: string, headers: {
         [field: string]: any;
-    }, msg: M) => Promise<any>;
+    }, msg: MSG_TYPE) => Promise<any>;
     disconnect: () => void;
     on: (event: string, listener: Function) => this;
 }
-export declare type MessageCallback = MessageCallbackT<interf.GridMessage>;
-export interface IMessageClient {
-    subscribe: (destination: string, cb: MessageCallback, headers?: {
+export declare class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
+    protected __msgClient: rcf.IMessageClient;
+    protected topicMountingPath: string;
+    constructor(__msgClient: rcf.IMessageClient, topicMountingPath?: string);
+    subscribe(destination: string, cb: MessageCallback<MSG_TYPE>, headers?: {
         [field: string]: any;
-    }) => Promise<string>;
-    unsubscribe: (sub_id: string) => Promise<any>;
-    send: (destination: string, headers: {
+    }): Promise<string>;
+    unsubscribe(sub_id: string): Promise<any>;
+    send(destination: string, headers: {
         [field: string]: any;
-    }, msg: interf.GridMessage) => Promise<any>;
-    disconnect: () => void;
-    on: (event: string, listener: Function) => this;
+    }, msg: MSG_TYPE): Promise<any>;
+    disconnect(): void;
+    on(event: string, listener: Function): this;
 }
-export declare class ApiCore extends events.EventEmitter {
+export declare class ApiCore<MSG_TYPE> extends events.EventEmitter {
     protected topicMountingPath: string;
     private __authApi;
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, topicMountingPath?: string);
@@ -39,19 +39,16 @@ export declare class ApiCore extends events.EventEmitter {
     readonly tokenGrant: rcf.IOAuth2TokenGrant;
     readonly instance_url: string;
     $J(method: string, pathname: string, data: any): Promise<any>;
-    $M(): IMessageClient;
+    $M(): IMessageClient<MSG_TYPE>;
+    mount(mountingPath: string, topicMountingPath?: string): ApiCore<MSG_TYPE>;
 }
 export interface IGridJob {
     jobId?: string;
     run(): void;
     on: (event: string, listener: Function) => this;
 }
-export interface IAutoScalerImplementation$ {
-    $J: (method: string, pathname: string, data: any) => Promise<any>;
-    $M: () => IMessageClient;
-}
 export interface ISessionBase {
-    createMsgClient: () => IMessageClient;
+    createMsgClient: () => IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
@@ -75,12 +72,12 @@ export interface ISessionBase {
 export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
-export declare class SessionBase extends ApiCore implements ISessionBase {
+export declare class SessionBase extends ApiCore<interf.GridMessage> implements ISessionBase {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
-    createMsgClient(): IMessageClient;
+    createMsgClient(): IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
-    readonly AutoScalerImplementation$: IAutoScalerImplementation$;
+    readonly AutoScalerImplementationApiCore: ApiCore<interf.GridMessage>;
     getTimes(): Promise<interf.Times>;
     autoScalerAvailable(): Promise<boolean>;
     runJob(jobSubmit: interf.IGridJobSubmit): IGridJob;

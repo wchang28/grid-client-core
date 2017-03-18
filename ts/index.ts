@@ -7,40 +7,25 @@ import {IAutoScalableGrid, IAutoScalableState, IGridAutoScaler, IWorker, IWorker
 let eventStreamPathname = '/services/events/event_stream';
 let clientOptions: rcf.IMessageClientOptions = {reconnetIntervalMS: 10000};
 
-export interface MessageCallbackT<M> {
-    (msg: M, headers: rcf.IMsgHeaders): void;
-}
+// TODO: in the future move this code to rcf
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export type MessageCallback<MSG_TYPE> = (msg: MSG_TYPE, headers: rcf.IMsgHeaders) => void;
 
-export interface IMessageClientT<M> {
-    subscribe: (destination: string, cb: MessageCallbackT<M>, headers?: {[field: string]: any;}) => Promise<string>;
+export interface IMessageClient<MSG_TYPE> {
+    subscribe: (destination: string, cb: MessageCallback<MSG_TYPE>, headers?: {[field: string]: any;}) => Promise<string>;
     unsubscribe: (sub_id: string) => Promise<any>;
-    send: (destination: string, headers: {[field: string]: any;}, msg: M) => Promise<any>;
+    send: (destination: string, headers: {[field: string]: any;}, msg: MSG_TYPE) => Promise<any>;
     disconnect: () => void;
     on: (event: string, listener: Function) => this;
 }
 
-export type MessageCallback = MessageCallbackT<interf.GridMessage>;
-/*
-export interface MessageCallback {
-    (msg: interf.GridMessage, headers: rcf.IMsgHeaders): void;
-}
-*/
-
-export interface IMessageClient {
-    subscribe: (destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) => Promise<string>;
-    unsubscribe: (sub_id: string) => Promise<any>;
-    send: (destination: string, headers: {[field: string]: any;}, msg: interf.GridMessage) => Promise<any>;
-    disconnect: () => void;
-    on: (event: string, listener: Function) => this;
-}
-
-class MessageClient implements IMessageClient {
+export class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
     constructor(protected __msgClient: rcf.IMessageClient, protected topicMountingPath: string = '') {}
-    subscribe(destination: string, cb: MessageCallback, headers?: {[field: string]: any;}) : Promise<string> {
+    subscribe(destination: string, cb: MessageCallback<MSG_TYPE>, headers?: {[field: string]: any;}) : Promise<string> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
             let sub_id = this.__msgClient.subscribe(this.topicMountingPath + destination, (msg: rcf.IMessage) => {
-                let gMsg: interf.GridMessage = msg.body;
-                cb(gMsg, msg.headers);
+                let m: MSG_TYPE = msg.body;
+                cb(m, msg.headers);
             }, headers, (err: any) => {
                 if (err)
                     reject(err);
@@ -59,7 +44,7 @@ class MessageClient implements IMessageClient {
             });
         });
     }
-    send(destination: string, headers: {[field: string]: any}, msg: interf.GridMessage) : Promise<any> {
+    send(destination: string, headers: {[field: string]: any}, msg: MSG_TYPE) : Promise<any> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
             this.__msgClient.send(this.topicMountingPath + destination, headers, msg, (err: any) => {
                 if (err)
@@ -75,8 +60,9 @@ class MessageClient implements IMessageClient {
         return this;
     }
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export class ApiCore extends events.EventEmitter {
+export class ApiCore<MSG_TYPE> extends events.EventEmitter {
     private __authApi: rcf.AuthorizedRestApi
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, protected topicMountingPath: string = '') {
         super();
@@ -99,7 +85,12 @@ export class ApiCore extends events.EventEmitter {
             });
         });
     }
-    $M() : IMessageClient {return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);}
+    $M() : IMessageClient<MSG_TYPE> {return new MessageClient<MSG_TYPE>(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);}
+    mount(mountingPath: string, topicMountingPath: string = ''): ApiCore<MSG_TYPE> {
+        let access:rcf.OAuth2Access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
+        access.instance_url = this.__authApi.instance_url + mountingPath;
+        return new ApiCore<MSG_TYPE>(this.__authApi.$driver, access, this.tokenGrant, this.topicMountingPath + topicMountingPath);
+    }
 }
 
 interface IJobSubmitter {
@@ -107,7 +98,7 @@ interface IJobSubmitter {
 }
 
 // job submission class
-class JobSubmmit extends ApiCore implements IJobSubmitter {
+class JobSubmmit extends ApiCore<interf.GridMessage> implements IJobSubmitter {
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __jobSubmit:interf.IGridJobSubmit) {
         super($drver, access, tokenGrant);
     }
@@ -117,7 +108,7 @@ class JobSubmmit extends ApiCore implements IJobSubmitter {
 }
 
 // job re-submission class
-class JobReSubmmit extends ApiCore implements IJobSubmitter {
+class JobReSubmmit extends ApiCore<interf.GridMessage> implements IJobSubmitter {
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __oldJobId:string, private __failedTasksOnly:boolean) {
         super($drver, access, tokenGrant);
     }
@@ -142,7 +133,7 @@ export interface IGridJob {
 // 3. done (jobProgress: IJobProgress)
 // 4. task-complete (task:ITask)
 // 4. error
-class GridJob extends ApiCore implements IGridJob {
+class GridJob extends ApiCore<interf.GridMessage> implements IGridJob {
     private __jobId:string = null;
     constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __js:IJobSubmitter) {
         super($drver, access, tokenGrant);
@@ -150,12 +141,12 @@ class GridJob extends ApiCore implements IGridJob {
     private static jobDone(jobProgress: interf.IJobProgress) : boolean {
         return (jobProgress.status === 'FINISHED' || jobProgress.status === 'ABORTED');
     }
-    private onError(msgClient: IMessageClient, err:any) : void {
+    private onError(msgClient: IMessageClient<interf.GridMessage>, err:any) : void {
         this.emit('error', err);
         if (msgClient) msgClient.disconnect();
     }
     // returns true if job is still running, false otherwise
-    private onJobProgress(msgClient: IMessageClient, jp: interf.IJobProgress) : boolean {
+    private onJobProgress(msgClient: IMessageClient<interf.GridMessage>, jp: interf.IJobProgress) : boolean {
         this.emit('status-changed', jp);
         if (Utils.jobDone(jp)) {
             if (msgClient) msgClient.disconnect();
@@ -214,45 +205,40 @@ class GridJob extends ApiCore implements IGridJob {
 }
 
 class AutoScalableGrid implements IAutoScalableGrid {
-    constructor(private api: ApiCore) {}
-    getWorkers(workerIds: string[]) : Promise<IWorker[]> {return this.api.$J("GET", "/services/scalable/get_workers", workerIds);}
-    disableWorkers(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/services/scalable/disable_workers", workerIds);}
-    setWorkersTerminating(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/services/scalable/set_workers_terminating", workerIds);}
-    getCurrentState() : Promise<IAutoScalableState> {return this.api.$J("GET", "/services/scalable/state", {});}
+    constructor(private api: ApiCore<interf.GridMessage>) {}
+    getWorkers(workerIds: string[]) : Promise<IWorker[]> {return this.api.$J("GET", "/get_workers", workerIds);}
+    disableWorkers(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/disable_workers", workerIds);}
+    setWorkersTerminating(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/set_workers_terminating", workerIds);}
+    getCurrentState() : Promise<IAutoScalableState> {return this.api.$J("GET", "/state", {});}
 }
 
 class GridAutoScaler implements IGridAutoScaler {
-    constructor(private api: ApiCore) {}
-    isScalingUp(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_scaling_up", {});}
-    launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<LaunchingWorker[]> {return this.api.$J("POST", "/services/autoscaler/launch_new_workers", launchRequest);}
-    terminateWorkers(workers: IWorker[]): Promise<TerminatingWorker[]> {return this.api.$J("POST", "/services/autoscaler/terminate_workers", workers);}
-    isEnabled(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/is_enabled", {});}
-    enable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/enable", {});}
-    disable(): Promise<any> {return this.api.$J("POST", "/services/autoscaler/disable", {});}
-    hasMaxWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/has_max_workers_cap", {});}
-    hasMinWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/services/autoscaler/has_min_workers_cap", {});}
-    getMaxWorkersCap(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_max_workers_cap", {});}
-    setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_max_workers_cap", value);}
-    getMinWorkersCap(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_min_workers_cap", {});}
-    setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_min_workers_cap", value);}
-    getLaunchingTimeoutMinutes (): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_launching_timeout_minutes", {});}
-    setLaunchingTimeoutMinutes (value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_launching_timeout_minutes", value);}
-    getTerminateWorkerAfterMinutesIdle(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_terminate_worker_after_minutes_idle", {});}
-    setTerminateWorkerAfterMinutesIdle(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_terminate_worker_after_minutes_idle", value);}
-    getRampUpSpeedRatio(): Promise<number> {return this.api.$J("GET", "/services/autoscaler/get_ramp_up_speed_ratio", {});}
-    setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/services/autoscaler/set_ramp_up_speed_ratio", value);}
-    getLaunchingWorkers(): Promise<LaunchingWorker[]> {return this.api.$J("GET", "/services/autoscaler/get_launching_workers", {});}
-    getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/services/autoscaler", {});}
-    getImplementationInfo(): Promise<AutoScalerImplementationInfo> {return this.api.$J("GET", "/services/autoscaler/get_impl_info", {});}
-}
-
-export interface IAutoScalerImplementation$ {
-    $J: (method: string, pathname: string, data: any) => Promise<any>;
-    $M: () => IMessageClient;
+    constructor(private api: ApiCore<interf.GridMessage>) {}
+    isScalingUp(): Promise<boolean> {return this.api.$J("GET", "/is_scaling_up", {});}
+    launchNewWorkers(launchRequest: IWorkersLaunchRequest): Promise<LaunchingWorker[]> {return this.api.$J("POST", "/launch_new_workers", launchRequest);}
+    terminateWorkers(workers: IWorker[]): Promise<TerminatingWorker[]> {return this.api.$J("POST", "/terminate_workers", workers);}
+    isEnabled(): Promise<boolean> {return this.api.$J("GET", "/is_enabled", {});}
+    enable(): Promise<any> {return this.api.$J("POST", "/enable", {});}
+    disable(): Promise<any> {return this.api.$J("POST", "/disable", {});}
+    hasMaxWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/has_max_workers_cap", {});}
+    hasMinWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/has_min_workers_cap", {});}
+    getMaxWorkersCap(): Promise<number> {return this.api.$J("GET", "/get_max_workers_cap", {});}
+    setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_max_workers_cap", value);}
+    getMinWorkersCap(): Promise<number> {return this.api.$J("GET", "/get_min_workers_cap", {});}
+    setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_min_workers_cap", value);}
+    getLaunchingTimeoutMinutes (): Promise<number> {return this.api.$J("GET", "/get_launching_timeout_minutes", {});}
+    setLaunchingTimeoutMinutes (value: number): Promise<number> {return this.api.$J("POST", "/set_launching_timeout_minutes", value);}
+    getTerminateWorkerAfterMinutesIdle(): Promise<number> {return this.api.$J("GET", "/get_terminate_worker_after_minutes_idle", {});}
+    setTerminateWorkerAfterMinutesIdle(value: number): Promise<number> {return this.api.$J("POST", "/set_terminate_worker_after_minutes_idle", value);}
+    getRampUpSpeedRatio(): Promise<number> {return this.api.$J("GET", "/get_ramp_up_speed_ratio", {});}
+    setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/set_ramp_up_speed_ratio", value);}
+    getLaunchingWorkers(): Promise<LaunchingWorker[]> {return this.api.$J("GET", "/get_launching_workers", {});}
+    getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/", {});}
+    getImplementationInfo(): Promise<AutoScalerImplementationInfo> {return this.api.$J("GET", "/get_impl_info", {});}
 }
 
 export interface ISessionBase {
-    createMsgClient: () => IMessageClient;
+    createMsgClient: () => IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
     getTimes: () => Promise<interf.Times>;
@@ -278,19 +264,17 @@ export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
 
-export class SessionBase extends ApiCore implements ISessionBase {
+export class SessionBase extends ApiCore<interf.GridMessage> implements ISessionBase {
     constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant) {
         super($drver, access, tokenGrant);
     }
-    createMsgClient() : IMessageClient {
+    createMsgClient() : IMessageClient<interf.GridMessage> {
         return this.$M();
     }
-    get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this);}
-    get GridAutoScaler(): IGridAutoScaler {return new GridAutoScaler(this);}
-    get AutoScalerImplementation$() : IAutoScalerImplementation$ {
-        let access:rcf.OAuth2Access = (this.access ? JSON.parse(JSON.stringify(this.access)) : {});
-        access.instance_url = this.instance_url + Utils.getAutoScalerImplementationApiBasePath();
-        return new ApiCore(this.$driver, access, this.tokenGrant, Utils.getAutoScalerImplementationTopic());
+    get AutoScalableGrid(): IAutoScalableGrid {return new AutoScalableGrid(this.mount('/services/scalable'));}
+    get GridAutoScaler(): IGridAutoScaler {return new GridAutoScaler(this.mount('/services/autoscaler'));}
+    get AutoScalerImplementationApiCore() : ApiCore<interf.GridMessage> {
+        return this.mount(Utils.getAutoScalerImplementationApiBasePath(), Utils.getAutoScalerImplementationTopic());
     }
     getTimes(): Promise<interf.Times> {return this.$J("GET", '/services/times', {});}
     autoScalerAvailable(): Promise<boolean> {return this.$J("GET", '/services/autoscaler_available', {});}
