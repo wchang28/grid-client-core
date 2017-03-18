@@ -51,6 +51,7 @@ export interface ISessionBase {
     createMsgClient: () => IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
+    readonly AutoScalerImplementationApiCore: ApiCore<interf.GridMessage>;
     getTimes: () => Promise<interf.Times>;
     autoScalerAvailable: () => Promise<boolean>;
     runJob: (jobSubmit: interf.IGridJobSubmit) => IGridJob;
