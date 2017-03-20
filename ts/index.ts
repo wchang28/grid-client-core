@@ -63,8 +63,8 @@ export class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export class ApiCore<MSG_TYPE> extends events.EventEmitter {
-    private __authApi: rcf.AuthorizedRestApi
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, protected topicMountingPath: string = '') {
+    private __authApi: rcf.AuthorizedRestApi;
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __parentAuthApi: rcf.AuthorizedRestApi = null, protected topicMountingPath: string = '') {
         super();
         this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         this.__authApi.on('on_access_refreshed', (newAccess: rcf.OAuth2Access) => {
@@ -85,11 +85,17 @@ export class ApiCore<MSG_TYPE> extends events.EventEmitter {
             });
         });
     }
-    $M() : IMessageClient<MSG_TYPE> {return new MessageClient<MSG_TYPE>(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);}
+    private get MessageClientFactoryAuthorizedApi() : rcf.AuthorizedRestApi {
+        let IAmAtTop = (this.__parentAuthApi === null);
+        return (IAmAtTop ? this.__authApi : this.__parentAuthApi);
+    }
+    $M() : IMessageClient<MSG_TYPE> {
+        return new MessageClient<MSG_TYPE>(this.MessageClientFactoryAuthorizedApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);
+    }
     mount(mountingPath: string, topicMountingPath: string = ''): ApiCore<MSG_TYPE> {
         let access:rcf.OAuth2Access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
         access.instance_url = this.__authApi.instance_url + mountingPath;
-        return new ApiCore<MSG_TYPE>(this.__authApi.$driver, access, this.tokenGrant, this.topicMountingPath + topicMountingPath);
+        return new ApiCore<MSG_TYPE>(this.__authApi.$driver, access, this.tokenGrant, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
     }
 }
 

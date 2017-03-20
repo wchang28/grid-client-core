@@ -62,9 +62,11 @@ exports.MessageClient = MessageClient;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
-    function ApiCore($drver, access, tokenGrant, topicMountingPath) {
+    function ApiCore($drver, access, tokenGrant, __parentAuthApi, topicMountingPath) {
+        if (__parentAuthApi === void 0) { __parentAuthApi = null; }
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
         var _this = _super.call(this) || this;
+        _this.__parentAuthApi = __parentAuthApi;
         _this.topicMountingPath = topicMountingPath;
         _this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
         _this.__authApi.on('on_access_refreshed', function (newAccess) {
@@ -103,12 +105,22 @@ var ApiCore = (function (_super) {
             });
         });
     };
-    ApiCore.prototype.$M = function () { return new MessageClient(this.__authApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath); };
+    Object.defineProperty(ApiCore.prototype, "MessageClientFactoryAuthorizedApi", {
+        get: function () {
+            var IAmAtTop = (this.__parentAuthApi === null);
+            return (IAmAtTop ? this.__authApi : this.__parentAuthApi);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    ApiCore.prototype.$M = function () {
+        return new MessageClient(this.MessageClientFactoryAuthorizedApi.$M(eventStreamPathname, clientOptions), this.topicMountingPath);
+    };
     ApiCore.prototype.mount = function (mountingPath, topicMountingPath) {
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
         var access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
         access.instance_url = this.__authApi.instance_url + mountingPath;
-        return new ApiCore(this.__authApi.$driver, access, this.tokenGrant, this.topicMountingPath + topicMountingPath);
+        return new ApiCore(this.__authApi.$driver, access, this.tokenGrant, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
     };
     return ApiCore;
 }(events.EventEmitter));

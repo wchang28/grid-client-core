@@ -31,14 +31,16 @@ export declare class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE>
     on(event: string, listener: Function): this;
 }
 export declare class ApiCore<MSG_TYPE> extends events.EventEmitter {
+    private __parentAuthApi;
     protected topicMountingPath: string;
     private __authApi;
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, topicMountingPath?: string);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, __parentAuthApi?: rcf.AuthorizedRestApi, topicMountingPath?: string);
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
     readonly tokenGrant: rcf.IOAuth2TokenGrant;
     readonly instance_url: string;
     $J(method: string, pathname: string, data: any): Promise<any>;
+    private readonly MessageClientFactoryAuthorizedApi;
     $M(): IMessageClient<MSG_TYPE>;
     mount(mountingPath: string, topicMountingPath?: string): ApiCore<MSG_TYPE>;
 }
