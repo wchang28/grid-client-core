@@ -229,15 +229,15 @@ class GridAutoScaler implements IGridAutoScaler {
     hasMaxWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/has_max_workers_cap", {});}
     hasMinWorkersCap(): Promise<boolean> {return this.api.$J("GET", "/has_min_workers_cap", {});}
     getMaxWorkersCap(): Promise<number> {return this.api.$J("GET", "/get_max_workers_cap", {});}
-    setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_max_workers_cap", value);}
+    setMaxWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_max_workers_cap", {value});}
     getMinWorkersCap(): Promise<number> {return this.api.$J("GET", "/get_min_workers_cap", {});}
-    setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_min_workers_cap", value);}
+    setMinWorkersCap(value: number): Promise<number> {return this.api.$J("POST", "/set_min_workers_cap", {value});}
     getLaunchingTimeoutMinutes (): Promise<number> {return this.api.$J("GET", "/get_launching_timeout_minutes", {});}
-    setLaunchingTimeoutMinutes (value: number): Promise<number> {return this.api.$J("POST", "/set_launching_timeout_minutes", value);}
+    setLaunchingTimeoutMinutes (value: number): Promise<number> {return this.api.$J("POST", "/set_launching_timeout_minutes", {value});}
     getTerminateWorkerAfterMinutesIdle(): Promise<number> {return this.api.$J("GET", "/get_terminate_worker_after_minutes_idle", {});}
-    setTerminateWorkerAfterMinutesIdle(value: number): Promise<number> {return this.api.$J("POST", "/set_terminate_worker_after_minutes_idle", value);}
+    setTerminateWorkerAfterMinutesIdle(value: number): Promise<number> {return this.api.$J("POST", "/set_terminate_worker_after_minutes_idle", {value});}
     getRampUpSpeedRatio(): Promise<number> {return this.api.$J("GET", "/get_ramp_up_speed_ratio", {});}
-    setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/set_ramp_up_speed_ratio", value);}
+    setRampUpSpeedRatio(value: number): Promise<number> {return this.api.$J("POST", "/set_ramp_up_speed_ratio", {value});}
     getLaunchingWorkers(): Promise<LaunchingWorker[]> {return this.api.$J("GET", "/get_launching_workers", {});}
     getJSON(): Promise<IGridAutoScalerJSON> {return this.api.$J("GET", "/", {});}
     getImplementationInfo(): Promise<AutoScalerImplementationInfo> {return this.api.$J("GET", "/get_impl_info", {});}
