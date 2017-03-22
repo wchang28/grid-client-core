@@ -11,6 +11,7 @@ export interface IGridUserProfile {
     canStartStopDispatching: boolean;
     canOpenCloseQueue: boolean;
     canEnableDisableNode: boolean;
+    canChangeAutoScalerSettings: boolean;
 }
 export interface IGridUser {
     userId: string;
