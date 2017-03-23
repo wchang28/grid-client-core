@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 // utility functions
 var Utils = (function () {
     function Utils() {

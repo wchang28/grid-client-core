@@ -1,4 +1,3 @@
-/// <reference types="es6-promise" />
 /// <reference types="node" />
 import * as events from 'events';
 import * as rcf from 'rcf';
