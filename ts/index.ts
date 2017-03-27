@@ -213,7 +213,7 @@ class GridJob extends ApiCore<interf.GridMessage> implements IGridJob {
 class AutoScalableGrid implements IAutoScalableGrid {
     constructor(private api: ApiCore<interf.GridMessage>) {}
     getWorkers(workerIds: string[]) : Promise<IWorker[]> {return this.api.$J("GET", "/get_workers", workerIds);}
-    disableWorkers(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/disable_workers", workerIds);}
+    requestToTerminateWorkers(workerIds: string[]) : Promise<string[]> {return this.api.$J("POST", "/request_to_terminate_workers", workerIds);}
     setWorkersTerminating(workerIds: string[]) : Promise<any> {return this.api.$J("POST", "/set_workers_terminating", workerIds);}
     getCurrentState() : Promise<IAutoScalableState> {return this.api.$J("GET", "/state", {});}
 }
