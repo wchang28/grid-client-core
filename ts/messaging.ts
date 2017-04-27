@@ -65,7 +65,6 @@ export interface IDispStates {
 }
 
 export interface IJobsStatusPollingJSON {
-    numJobs: number;
     started: boolean; 
 }
 

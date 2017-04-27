@@ -55,7 +55,6 @@ export interface IDispStates {
     numOutstandingAcks: number;
 }
 export interface IJobsStatusPollingJSON {
-    numJobs: number;
     started: boolean;
 }
 export interface IDispatcherJSON {
