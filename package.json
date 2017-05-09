@@ -1,13 +1,14 @@
 {
   "name": "grid-client-core",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Node Grid Client Core",
   "main": "./js/index.js",
   "typings": "./js/index.d.ts",
   "scripts": {},
   "keywords": [
     "Grid",
-    "Client"
+    "Client",
+    "API"
   ],
   "repository": {
     "type": "git",
@@ -16,8 +17,7 @@
   "author": "Wen Chang",
   "license": "MIT",
   "dependencies": {
-    "@types/es6-promise": "0.0.32",
-    "@types/node": "^6.0.41",
+    "@types/node": "^6.0.73",
     "autoscalable-grid": "git+https://github.com/wchang28/autoscalable-grid.git",
     "rcf": "git+https://github.com/wchang28/rcf.git"
   }
