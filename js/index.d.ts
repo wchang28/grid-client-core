@@ -33,12 +33,12 @@ export declare class ApiCore<MSG_TYPE> extends events.EventEmitter {
     private __parentAuthApi;
     protected topicMountingPath: string;
     private __authApi;
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, __parentAuthApi?: rcf.AuthorizedRestApi, topicMountingPath?: string);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, __parentAuthApi?: rcf.AuthorizedRestApi, topicMountingPath?: string);
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
-    readonly tokenGrant: rcf.IOAuth2TokenGrant;
+    readonly tokenRefresher: rcf.IOAuth2TokenRefresher;
     readonly instance_url: string;
-    $J(method: string, pathname: string, data: any): Promise<any>;
+    $J(method: rcf.HTTPMethod, pathname: string, data: any): Promise<any>;
     private readonly MessageClientFactoryAuthorizedApi;
     $M(): IMessageClient<MSG_TYPE>;
     mount(mountingPath: string, topicMountingPath?: string): ApiCore<MSG_TYPE>;
@@ -75,7 +75,7 @@ export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
 export declare class SessionBase extends ApiCore<interf.GridMessage> implements ISessionBase {
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher);
     createMsgClient(): IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
@@ -98,7 +98,7 @@ export declare class SessionBase extends ApiCore<interf.GridMessage> implements 
     setNodeEnabled(nodeId: string, enabled: boolean): Promise<interf.INodeItem>;
     getTaskResult(jobId: string, taskIndex: number): Promise<interf.ITaskResult>;
 }
-export { $Driver, OAuth2Access, IOAuth2TokenGrant } from 'rcf';
+export { $Driver, OAuth2Access, IOAuth2TokenRefresher } from 'rcf';
 export { Utils } from './utils';
 export * from './messaging';
 export * from 'autoscalable-grid';

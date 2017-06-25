@@ -22,38 +22,13 @@ export interface IMessageClient<MSG_TYPE> {
 export class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
     constructor(protected __msgClient: rcf.IMessageClient, protected topicMountingPath: string = '') {}
     subscribe(destination: string, cb: MessageCallback<MSG_TYPE>, headers?: {[field: string]: any;}) : Promise<string> {
-        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            let sub_id = this.__msgClient.subscribe(this.topicMountingPath + destination, (msg: rcf.IMessage) => {
-                let m: MSG_TYPE = msg.body;
-                cb(m, msg.headers);
-            }, headers, (err: any) => {
-                if (err)
-                    reject(err);
-                else
-                    resolve(sub_id);
-            });
-        });
+        return this.__msgClient.subscribe(this.topicMountingPath + destination, (msg: rcf.IMessage) => {
+            let m: MSG_TYPE = msg.body;
+            cb(m, msg.headers);
+        }, headers);
     }
-    unsubscribe(sub_id: string) : Promise<any> {
-        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            this.__msgClient.unsubscribe(sub_id, (err: any) => {
-                if (err)
-                    reject(err);
-                else
-                    resolve({});
-            });
-        });
-    }
-    send(destination: string, headers: {[field: string]: any}, msg: MSG_TYPE) : Promise<any> {
-        return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            this.__msgClient.send(this.topicMountingPath + destination, headers, msg, (err: any) => {
-                if (err)
-                    reject(err);
-                else
-                    resolve({});
-            });
-        });
-    }
+    unsubscribe(sub_id: string) : Promise<any> {return this.__msgClient.unsubscribe(sub_id);}
+    send(destination: string, headers: {[field: string]: any}, msg: MSG_TYPE) : Promise<any> {return this.__msgClient.send(this.topicMountingPath + destination, headers, msg);}
     disconnect() : void {this.__msgClient.disconnect();}
     on(event: string, listener: Function) : this {
         this.__msgClient.on(event, listener);
@@ -64,22 +39,22 @@ export class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
 
 export class ApiCore<MSG_TYPE> extends events.EventEmitter {
     private __authApi: rcf.AuthorizedRestApi;
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __parentAuthApi: rcf.AuthorizedRestApi = null, protected topicMountingPath: string = '') {
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, private __parentAuthApi: rcf.AuthorizedRestApi = null, protected topicMountingPath: string = '') {
         super();
-        this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenGrant);
+        this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenRefresher);
         this.__authApi.on('on_access_refreshed', (newAccess: rcf.OAuth2Access) => {
             this.emit('on_access_refreshed', newAccess);
         });
     }
     get $driver() : rcf.$Driver {return this.__authApi.$driver;}
     get access() : rcf.OAuth2Access {return this.__authApi.access;}
-    get tokenGrant() : rcf.IOAuth2TokenGrant {return this.__authApi.tokenGrant;}
+    get tokenRefresher() : rcf.IOAuth2TokenRefresher {return this.__authApi.tokenRefresher;}
     get instance_url() :string {return this.__authApi.instance_url;}  
-    $J(method: string, pathname: string, data: any) : Promise<any> {
+    $J(method: rcf.HTTPMethod, pathname: string, data: any) : Promise<any> {
         return new Promise<any>((resolve: (value: any) => void, reject: (err: any) => void) => {
-            this.__authApi.$JP(method, pathname, data)
-            .then((result: rcf.RestReturn) => {
-                resolve(result.ret);
+            this.__authApi.$J(method, pathname, data)
+            .then((result: rcf.RESTReturn) => {
+                resolve(result.data);
             }).catch((err: any) => {
                 reject(err);
             });
@@ -95,7 +70,7 @@ export class ApiCore<MSG_TYPE> extends events.EventEmitter {
     mount(mountingPath: string, topicMountingPath: string = ''): ApiCore<MSG_TYPE> {
         let access:rcf.OAuth2Access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
         access.instance_url = this.__authApi.instance_url + mountingPath;
-        return new ApiCore<MSG_TYPE>(this.__authApi.$driver, access, this.tokenGrant, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
+        return new ApiCore<MSG_TYPE>(this.__authApi.$driver, access, this.tokenRefresher, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
     }
 }
 
@@ -105,8 +80,8 @@ interface IJobSubmitter {
 
 // job submission class
 class JobSubmmit extends ApiCore<interf.GridMessage> implements IJobSubmitter {
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __jobSubmit:interf.IGridJobSubmit) {
-        super($drver, access, tokenGrant);
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, private __jobSubmit:interf.IGridJobSubmit) {
+        super($drver, access, tokenRefresher);
     }
     submit() : Promise<interf.IJobProgress> {
         return this.$J('POST', '/services/job/submit', this.__jobSubmit);
@@ -115,8 +90,8 @@ class JobSubmmit extends ApiCore<interf.GridMessage> implements IJobSubmitter {
 
 // job re-submission class
 class JobReSubmmit extends ApiCore<interf.GridMessage> implements IJobSubmitter {
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __oldJobId:string, private __failedTasksOnly:boolean) {
-        super($drver, access, tokenGrant);
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, private __oldJobId:string, private __failedTasksOnly:boolean) {
+        super($drver, access, tokenRefresher);
     }
     submit() : Promise<interf.IJobProgress> {
         let path = Utils.getJobOpPath(this.__oldJobId, 're_submit');
@@ -141,8 +116,8 @@ export interface IGridJob {
 // 4. error
 class GridJob extends ApiCore<interf.GridMessage> implements IGridJob {
     private __jobId:string = null;
-    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant, private __js:IJobSubmitter) {
-        super($drver, access, tokenGrant);
+    constructor($drver: rcf.$Driver, access:rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, private __js:IJobSubmitter) {
+        super($drver, access, tokenRefresher);
     }
     private static jobDone(jobProgress: interf.IJobProgress) : boolean {
         return (jobProgress.status === 'FINISHED' || jobProgress.status === 'ABORTED');
@@ -273,8 +248,8 @@ export interface ISession extends ISessionBase {
 }
 
 export class SessionBase extends ApiCore<interf.GridMessage> implements ISessionBase {
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenGrant: rcf.IOAuth2TokenGrant) {
-        super($drver, access, tokenGrant);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher) {
+        super($drver, access, tokenRefresher);
     }
     createMsgClient() : IMessageClient<interf.GridMessage> {
         return this.$M();
@@ -287,19 +262,19 @@ export class SessionBase extends ApiCore<interf.GridMessage> implements ISession
     getTimes(): Promise<interf.Times> {return this.$J("GET", '/services/times', {});}
     autoScalerAvailable(): Promise<boolean> {return this.$J("GET", '/services/autoscaler_available', {});}
     runJob(jobSubmit:interf.IGridJobSubmit) : IGridJob {
-        let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
-        return new GridJob(this.$driver, this.access, this.tokenGrant, js);
+        let js = new JobSubmmit(this.$driver, this.access, this.tokenRefresher, jobSubmit);
+        return new GridJob(this.$driver, this.access, this.tokenRefresher, js);
     }
     sumbitJob(jobSubmit:interf.IGridJobSubmit) : Promise<interf.IJobProgress> {
-        let js = new JobSubmmit(this.$driver, this.access, this.tokenGrant, jobSubmit);
+        let js = new JobSubmmit(this.$driver, this.access, this.tokenRefresher, jobSubmit);
         return js.submit();
     }
     reRunJob(oldJobId:string, failedTasksOnly:boolean) : IGridJob {
-        let js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
-        return new GridJob(this.$driver, this.access, this.tokenGrant, js);
+        let js = new JobReSubmmit(this.$driver, this.access, this.tokenRefresher, oldJobId, failedTasksOnly);
+        return new GridJob(this.$driver, this.access, this.tokenRefresher, js);
     }
     reSumbitJob(oldJobId:string, failedTasksOnly:boolean) : Promise<interf.IJobProgress> {
-        let js = new JobReSubmmit(this.$driver, this.access, this.tokenGrant, oldJobId, failedTasksOnly);
+        let js = new JobReSubmmit(this.$driver, this.access, this.tokenRefresher, oldJobId, failedTasksOnly);
         return js.submit();
     }
     getMostRecentJobs() : Promise<interf.IJobInfo[]> {return this.$J("GET", '/services/job/most_recent', {});}
@@ -339,7 +314,7 @@ export class SessionBase extends ApiCore<interf.GridMessage> implements ISession
     }
 }
 
-export {$Driver, OAuth2Access, IOAuth2TokenGrant} from 'rcf';
+export {$Driver, OAuth2Access, IOAuth2TokenRefresher} from 'rcf';
 export {Utils} from  './utils';
 export * from './messaging';
 export * from 'autoscalable-grid';
