@@ -13,9 +13,11 @@ export interface IMessageClient<MSG_TYPE> {
         [field: string]: any;
     }, msg: MSG_TYPE) => Promise<any>;
     disconnect: () => void;
-    on: (event: string, listener: Function) => this;
+    on(event: "ping", listener: () => void): this;
+    on(event: "connect", listener: (conn_id: string) => void): this;
+    on(event: "error", listener: (err: any) => void): this;
 }
-export declare class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE> {
+export declare class MessageClient<MSG_TYPE> extends events.EventEmitter implements IMessageClient<MSG_TYPE> {
     protected __msgClient: rcf.IMessageClient;
     protected topicMountingPath: string;
     constructor(__msgClient: rcf.IMessageClient, topicMountingPath?: string);
@@ -27,16 +29,14 @@ export declare class MessageClient<MSG_TYPE> implements IMessageClient<MSG_TYPE>
         [field: string]: any;
     }, msg: MSG_TYPE): Promise<any>;
     disconnect(): void;
-    on(event: string, listener: Function): this;
 }
 export declare class ApiCore<MSG_TYPE> extends events.EventEmitter {
     private __parentAuthApi;
     protected topicMountingPath: string;
     private __authApi;
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher, __parentAuthApi?: rcf.AuthorizedRestApi, topicMountingPath?: string);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, __parentAuthApi?: rcf.AuthorizedRestApi, topicMountingPath?: string);
     readonly $driver: rcf.$Driver;
     readonly access: rcf.OAuth2Access;
-    readonly tokenRefresher: rcf.IOAuth2TokenRefresher;
     readonly instance_url: string;
     $J(method: rcf.HTTPMethod, pathname: string, data: any): Promise<any>;
     private readonly MessageClientFactoryAuthorizedApi;
@@ -75,7 +75,7 @@ export interface ISession extends ISessionBase {
     logout: () => Promise<any>;
 }
 export declare class SessionBase extends ApiCore<interf.GridMessage> implements ISessionBase {
-    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access, tokenRefresher: rcf.IOAuth2TokenRefresher);
+    constructor($drver: rcf.$Driver, access: rcf.OAuth2Access);
     createMsgClient(): IMessageClient<interf.GridMessage>;
     readonly AutoScalableGrid: IAutoScalableGrid;
     readonly GridAutoScaler: IGridAutoScaler;
@@ -98,7 +98,7 @@ export declare class SessionBase extends ApiCore<interf.GridMessage> implements 
     setNodeEnabled(nodeId: string, enabled: boolean): Promise<interf.INodeItem>;
     getTaskResult(jobId: string, taskIndex: number): Promise<interf.ITaskResult>;
 }
-export { $Driver, OAuth2Access, IOAuth2TokenRefresher } from 'rcf';
+export { $Driver, OAuth2Access } from 'rcf';
 export { Utils } from './utils';
 export * from './messaging';
 export * from 'autoscalable-grid';

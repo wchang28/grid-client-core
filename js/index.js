@@ -15,11 +15,21 @@ var rcf = require("rcf");
 var utils_1 = require("./utils");
 var eventStreamPathname = '/services/events/event_stream';
 var clientOptions = { reconnetIntervalMS: 10000 };
-var MessageClient = (function () {
+var MessageClient = (function (_super) {
+    __extends(MessageClient, _super);
     function MessageClient(__msgClient, topicMountingPath) {
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
-        this.__msgClient = __msgClient;
-        this.topicMountingPath = topicMountingPath;
+        var _this = _super.call(this) || this;
+        _this.__msgClient = __msgClient;
+        _this.topicMountingPath = topicMountingPath;
+        _this.__msgClient.on("ping", function () {
+            _this.emit("ping");
+        }).on("connect", function (conn_id) {
+            _this.emit("connect", conn_id);
+        }).on("error", function (err) {
+            _this.emit("error", err);
+        });
+        return _this;
     }
     MessageClient.prototype.subscribe = function (destination, cb, headers) {
         return this.__msgClient.subscribe(this.topicMountingPath + destination, function (msg) {
@@ -30,26 +40,19 @@ var MessageClient = (function () {
     MessageClient.prototype.unsubscribe = function (sub_id) { return this.__msgClient.unsubscribe(sub_id); };
     MessageClient.prototype.send = function (destination, headers, msg) { return this.__msgClient.send(this.topicMountingPath + destination, headers, msg); };
     MessageClient.prototype.disconnect = function () { this.__msgClient.disconnect(); };
-    MessageClient.prototype.on = function (event, listener) {
-        this.__msgClient.on(event, listener);
-        return this;
-    };
     return MessageClient;
-}());
+}(events.EventEmitter));
 exports.MessageClient = MessageClient;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 var ApiCore = (function (_super) {
     __extends(ApiCore, _super);
-    function ApiCore($drver, access, tokenRefresher, __parentAuthApi, topicMountingPath) {
+    function ApiCore($drver, access, __parentAuthApi, topicMountingPath) {
         if (__parentAuthApi === void 0) { __parentAuthApi = null; }
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
         var _this = _super.call(this) || this;
         _this.__parentAuthApi = __parentAuthApi;
         _this.topicMountingPath = topicMountingPath;
-        _this.__authApi = new rcf.AuthorizedRestApi($drver, access, tokenRefresher);
-        _this.__authApi.on('on_access_refreshed', function (newAccess) {
-            _this.emit('on_access_refreshed', newAccess);
-        });
+        _this.__authApi = new rcf.AuthorizedRestApi($drver, access);
         return _this;
     }
     Object.defineProperty(ApiCore.prototype, "$driver", {
@@ -59,11 +62,6 @@ var ApiCore = (function (_super) {
     });
     Object.defineProperty(ApiCore.prototype, "access", {
         get: function () { return this.__authApi.access; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(ApiCore.prototype, "tokenRefresher", {
-        get: function () { return this.__authApi.tokenRefresher; },
         enumerable: true,
         configurable: true
     });
@@ -98,7 +96,7 @@ var ApiCore = (function (_super) {
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
         var access = (this.__authApi.access ? JSON.parse(JSON.stringify(this.__authApi.access)) : {});
         access.instance_url = this.__authApi.instance_url + mountingPath;
-        return new ApiCore(this.__authApi.$driver, access, this.tokenRefresher, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
+        return new ApiCore(this.__authApi.$driver, access, this.MessageClientFactoryAuthorizedApi, this.topicMountingPath + topicMountingPath);
     };
     return ApiCore;
 }(events.EventEmitter));
@@ -106,8 +104,8 @@ exports.ApiCore = ApiCore;
 // job submission class
 var JobSubmmit = (function (_super) {
     __extends(JobSubmmit, _super);
-    function JobSubmmit($drver, access, tokenRefresher, __jobSubmit) {
-        var _this = _super.call(this, $drver, access, tokenRefresher) || this;
+    function JobSubmmit($drver, access, __jobSubmit) {
+        var _this = _super.call(this, $drver, access) || this;
         _this.__jobSubmit = __jobSubmit;
         return _this;
     }
@@ -119,8 +117,8 @@ var JobSubmmit = (function (_super) {
 // job re-submission class
 var JobReSubmmit = (function (_super) {
     __extends(JobReSubmmit, _super);
-    function JobReSubmmit($drver, access, tokenRefresher, __oldJobId, __failedTasksOnly) {
-        var _this = _super.call(this, $drver, access, tokenRefresher) || this;
+    function JobReSubmmit($drver, access, __oldJobId, __failedTasksOnly) {
+        var _this = _super.call(this, $drver, access) || this;
         _this.__oldJobId = __oldJobId;
         _this.__failedTasksOnly = __failedTasksOnly;
         return _this;
@@ -143,8 +141,8 @@ var JobReSubmmit = (function (_super) {
 // 4. error
 var GridJob = (function (_super) {
     __extends(GridJob, _super);
-    function GridJob($drver, access, tokenRefresher, __js) {
-        var _this = _super.call(this, $drver, access, tokenRefresher) || this;
+    function GridJob($drver, access, __js) {
+        var _this = _super.call(this, $drver, access) || this;
         _this.__js = __js;
         _this.__jobId = null;
         return _this;
@@ -261,8 +259,8 @@ var GridAutoScaler = (function () {
 }());
 var SessionBase = (function (_super) {
     __extends(SessionBase, _super);
-    function SessionBase($drver, access, tokenRefresher) {
-        return _super.call(this, $drver, access, tokenRefresher) || this;
+    function SessionBase($drver, access) {
+        return _super.call(this, $drver, access) || this;
     }
     SessionBase.prototype.createMsgClient = function () {
         return this.$M();
@@ -287,19 +285,19 @@ var SessionBase = (function (_super) {
     SessionBase.prototype.getTimes = function () { return this.$J("GET", '/services/times', {}); };
     SessionBase.prototype.autoScalerAvailable = function () { return this.$J("GET", '/services/autoscaler_available', {}); };
     SessionBase.prototype.runJob = function (jobSubmit) {
-        var js = new JobSubmmit(this.$driver, this.access, this.tokenRefresher, jobSubmit);
-        return new GridJob(this.$driver, this.access, this.tokenRefresher, js);
+        var js = new JobSubmmit(this.$driver, this.access, jobSubmit);
+        return new GridJob(this.$driver, this.access, js);
     };
     SessionBase.prototype.sumbitJob = function (jobSubmit) {
-        var js = new JobSubmmit(this.$driver, this.access, this.tokenRefresher, jobSubmit);
+        var js = new JobSubmmit(this.$driver, this.access, jobSubmit);
         return js.submit();
     };
     SessionBase.prototype.reRunJob = function (oldJobId, failedTasksOnly) {
-        var js = new JobReSubmmit(this.$driver, this.access, this.tokenRefresher, oldJobId, failedTasksOnly);
-        return new GridJob(this.$driver, this.access, this.tokenRefresher, js);
+        var js = new JobReSubmmit(this.$driver, this.access, oldJobId, failedTasksOnly);
+        return new GridJob(this.$driver, this.access, js);
     };
     SessionBase.prototype.reSumbitJob = function (oldJobId, failedTasksOnly) {
-        var js = new JobReSubmmit(this.$driver, this.access, this.tokenRefresher, oldJobId, failedTasksOnly);
+        var js = new JobReSubmmit(this.$driver, this.access, oldJobId, failedTasksOnly);
         return js.submit();
     };
     SessionBase.prototype.getMostRecentJobs = function () { return this.$J("GET", '/services/job/most_recent', {}); };
