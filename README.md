@@ -1,1 +1,1 @@
-# grid-client-core
+# Node Grid Client Core

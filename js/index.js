@@ -15,7 +15,7 @@ var rcf = require("rcf");
 var utils_1 = require("./utils");
 var eventStreamPathname = '/services/events/event_stream';
 var clientOptions = { reconnetIntervalMS: 10000 };
-var MessageClient = (function (_super) {
+var MessageClient = /** @class */ (function (_super) {
     __extends(MessageClient, _super);
     function MessageClient(__msgClient, topicMountingPath) {
         if (topicMountingPath === void 0) { topicMountingPath = ''; }
@@ -44,7 +44,7 @@ var MessageClient = (function (_super) {
 }(events.EventEmitter));
 exports.MessageClient = MessageClient;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-var ApiCore = (function (_super) {
+var ApiCore = /** @class */ (function (_super) {
     __extends(ApiCore, _super);
     function ApiCore($drver, access, __parentAuthApi, topicMountingPath) {
         if (__parentAuthApi === void 0) { __parentAuthApi = null; }
@@ -102,7 +102,7 @@ var ApiCore = (function (_super) {
 }(events.EventEmitter));
 exports.ApiCore = ApiCore;
 // job submission class
-var JobSubmmit = (function (_super) {
+var JobSubmmit = /** @class */ (function (_super) {
     __extends(JobSubmmit, _super);
     function JobSubmmit($drver, access, __jobSubmit) {
         var _this = _super.call(this, $drver, access) || this;
@@ -115,7 +115,7 @@ var JobSubmmit = (function (_super) {
     return JobSubmmit;
 }(ApiCore));
 // job re-submission class
-var JobReSubmmit = (function (_super) {
+var JobReSubmmit = /** @class */ (function (_super) {
     __extends(JobReSubmmit, _super);
     function JobReSubmmit($drver, access, __oldJobId, __failedTasksOnly) {
         var _this = _super.call(this, $drver, access) || this;
@@ -139,7 +139,7 @@ var JobReSubmmit = (function (_super) {
 // 3. done (jobProgress: IJobProgress)
 // 4. task-complete (task:ITask)
 // 4. error
-var GridJob = (function (_super) {
+var GridJob = /** @class */ (function (_super) {
     __extends(GridJob, _super);
     function GridJob($drver, access, __js) {
         var _this = _super.call(this, $drver, access) || this;
@@ -219,7 +219,7 @@ var GridJob = (function (_super) {
     });
     return GridJob;
 }(ApiCore));
-var AutoScalableGrid = (function () {
+var AutoScalableGrid = /** @class */ (function () {
     function AutoScalableGrid(api) {
         this.api = api;
     }
@@ -229,7 +229,7 @@ var AutoScalableGrid = (function () {
     AutoScalableGrid.prototype.getCurrentState = function () { return this.api.$J("GET", "/state", {}); };
     return AutoScalableGrid;
 }());
-var GridAutoScaler = (function () {
+var GridAutoScaler = /** @class */ (function () {
     function GridAutoScaler(api) {
         this.api = api;
     }
@@ -257,7 +257,7 @@ var GridAutoScaler = (function () {
     GridAutoScaler.prototype.getImplementationInfo = function () { return this.api.$J("GET", "/get_impl_info", {}); };
     return GridAutoScaler;
 }());
-var SessionBase = (function (_super) {
+var SessionBase = /** @class */ (function (_super) {
     __extends(SessionBase, _super);
     function SessionBase($drver, access) {
         return _super.call(this, $drver, access) || this;
