@@ -340,3 +340,4 @@ var SessionBase = /** @class */ (function (_super) {
 exports.SessionBase = SessionBase;
 var utils_2 = require("./utils");
 exports.Utils = utils_2.Utils;
+//# sourceMappingURL=index.js.map

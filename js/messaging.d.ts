@@ -123,3 +123,21 @@ export interface Times {
     serverTime: number;
     dbTime: number;
 }
+export interface ITaskRunningStatus extends ITask {
+    cmd: string;
+    cookie?: string;
+    pid?: number;
+}
+export interface NodeQueryStatus {
+    FreeMem: number;
+    TotalMem: number;
+    UptimeSec: number;
+    RunningTasks: ITaskRunningStatus[];
+}
+export interface NodeQueryStatusRequest {
+    QueryId: string;
+}
+export interface NodeQueryStatusResponse {
+    QueryId: string;
+    Status: NodeQueryStatus;
+}
