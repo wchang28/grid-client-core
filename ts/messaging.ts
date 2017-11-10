@@ -147,8 +147,7 @@ export interface Times {
 }
 
 export interface ITaskRunningStatus extends ITask {
-    cmd: string;
-    cookie?: string;
+    cmd?: string;
     pid?: number;
 }
 

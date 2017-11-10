@@ -124,8 +124,7 @@ export interface Times {
     dbTime: number;
 }
 export interface ITaskRunningStatus extends ITask {
-    cmd: string;
-    cookie?: string;
+    cmd?: string;
     pid?: number;
 }
 export interface NodeQueryStatus {
