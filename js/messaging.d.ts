@@ -101,8 +101,8 @@ export interface IRunningProcessByNode {
 }
 export interface ITaskExecParams {
     cmd: string;
-    stdin: string;
-    envJSON: string;
+    stdin?: string;
+    envJSON?: string;
 }
 export interface ITaskExecResult {
     pid: number;
@@ -114,7 +114,7 @@ export interface ITaskItem {
     cmd: string;
     cookie?: string;
     stdin?: string;
-    envJSON: string;
+    envJSON?: string;
 }
 export interface IGridJobSubmit {
     description?: string;
@@ -127,7 +127,7 @@ export interface Times {
 }
 export interface ITaskRunningStatus extends ITask {
     cmd?: string;
-    envJSON: string;
+    envJSON?: string;
     pid?: number;
 }
 export interface NodeQueryStatus {
