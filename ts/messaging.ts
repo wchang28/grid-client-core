@@ -120,6 +120,7 @@ export interface IRunningProcessByNode {
 export interface ITaskExecParams {
     cmd: string;
     stdin: string;
+    envJSON: string;
 }
 
 export interface ITaskExecResult {
@@ -133,6 +134,7 @@ export interface ITaskItem {
     cmd: string;
     cookie?: string;
     stdin?: string;
+    envJSON: string;
 }
 
 export interface IGridJobSubmit {
@@ -148,6 +150,7 @@ export interface Times {
 
 export interface ITaskRunningStatus extends ITask {
     cmd?: string;
+    envJSON: string;
     pid?: number;
 }
 
